@@ -3,6 +3,8 @@
 #include "types.h"
 #include "renderer.cpp"
 
+global bool g_shouldRun = true;
+
 u8 CompressColorComponent(float component)
 {
   return u8(component * 255.0f);
@@ -17,8 +19,9 @@ LRESULT CALLBACK WindowProc(
   switch (message)
   {
     case WM_CLOSE:
+    case WM_DESTROY:
     {
-      PostQuitMessage(0);
+      g_shouldRun = false;
       return 0;
     } break;
   }
@@ -72,7 +75,7 @@ int CALLBACK WinMain(
   HDC windowDC = GetDC(window);
 
   MSG message {};
-  do
+  while (g_shouldRun)
   {
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
@@ -108,7 +111,7 @@ int CALLBACK WinMain(
       &backBufferInfo,
       DIB_RGB_COLORS,
       SRCCOPY);
-  } while (message.message != WM_QUIT);
+  }
   
   return 0;
 }
