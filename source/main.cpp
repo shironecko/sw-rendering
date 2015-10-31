@@ -1,11 +1,28 @@
 #include <windows.h>
 
+#include "types.h"
+#include "renderer.cpp"
+
+u8 CompressColorComponent(float component)
+{
+  return u8(component * 255.0f);
+}
+
 LRESULT CALLBACK WindowProc(
   HWND   window,
   UINT   message,
   WPARAM wParam,
   LPARAM lParam)
 {
+  switch (message)
+  {
+    case WM_CLOSE:
+    {
+      PostQuitMessage(0);
+      return 0;
+    } break;
+  }
+
   return DefWindowProc(window, message, wParam, lParam);
 }
 
@@ -42,6 +59,12 @@ int CALLBACK WinMain(
     nullptr
   );
 
+  Bitmap renderBuffer(windowWidth, windowHeight);
+  HDC windowDC = GetDC(window);
+  HDC backBufferDC = CreateCompatibleDC(windowDC);
+  HBITMAP backBufferMemory = CreateCompatibleBitmap(backBufferDC, windowWidth, windowHeight);
+  SelectObject (backBufferDC, backBufferMemory);
+
   MSG message {};
   do
   {
@@ -50,6 +73,22 @@ int CALLBACK WinMain(
       TranslateMessage(&message);
       DispatchMessage(&message);
     }
+
+    Render(renderBuffer);
+    for (int y = 0; y < renderBuffer.Height(); ++y)
+    {
+      for (int x = 0; x < renderBuffer.Width(); ++x)
+      {
+        Color& bufferColor = renderBuffer(x, y);
+        COLORREF windowColor = RGB(
+            CompressColorComponent(bufferColor.r),
+            CompressColorComponent(bufferColor.g),
+            CompressColorComponent(bufferColor.b));
+
+        SetPixelV(backBufferDC, x, y, windowColor);
+      }
+    }
+    BitBlt(windowDC, 0, 0, windowWidth, windowHeight, backBufferDC, 0, 0, SRCCOPY);
   } while (message.message != WM_QUIT);
   
   return 0;
