@@ -26,6 +26,11 @@ public:
     m_pixels = new Color[width * height];
   }
 
+  ~Bitmap()
+  {
+    delete[] m_pixels;
+  }
+
   Color& operator () (u32 x, u32 y)
   {
     assert(x < m_width);
