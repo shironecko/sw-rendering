@@ -3,11 +3,35 @@
 #include "types.h"
 #include "renderer.cpp"
 
-global bool g_shouldRun = true;
+global bool       g_shouldRun = true;
+global u32        g_windowWidth;
+global u32        g_windowHeight;
+global BITMAPINFO g_backBufferInfo;
+global u32*       g_backBufferMemory;
+global Bitmap*    g_renderBuffer;
 
 u8 CompressColorComponent(float component)
 {
   return u8(component * 255.0f);
+}
+
+BITMAPINFO ResizeRenderingBuffers(u32** backBufferMemory, Bitmap** renderBuffer, u32 width, u32 height)
+{
+  delete[] *backBufferMemory;
+  *backBufferMemory = new u32[width * height];
+
+  delete *renderBuffer;
+  *renderBuffer = new Bitmap(width, height);
+
+  BITMAPINFO info {};
+  info.bmiHeader.biSize = sizeof(info.bmiHeader);
+  info.bmiHeader.biWidth = width;
+  info.bmiHeader.biHeight = height;
+  info.bmiHeader.biPlanes = 1;
+  info.bmiHeader.biBitCount = 32;
+  info.bmiHeader.biCompression = BI_RGB;
+
+  return info;
 }
 
 LRESULT CALLBACK WindowProc(
@@ -18,15 +42,51 @@ LRESULT CALLBACK WindowProc(
 {
   switch (message)
   {
+    case WM_SIZE:
+    {
+      g_windowWidth = LOWORD(lParam);
+      g_windowHeight = HIWORD(lParam);
+    } break;
+    case WM_EXITSIZEMOVE:
+    {
+      if (wParam == SC_SIZE)
+        g_backBufferInfo = ResizeRenderingBuffers(&g_backBufferMemory, &g_renderBuffer, g_windowWidth, g_windowHeight);
+        
+    } break;
+    case WM_PAINT:
+    {
+      PAINTSTRUCT ps;
+      HDC windowDC = BeginPaint(window, &ps);
+
+      StretchDIBits(
+        windowDC,
+        0,
+        0,
+        g_windowWidth,
+        g_windowHeight,
+        0,
+        0,
+        g_backBufferInfo.bmiHeader.biWidth,
+        g_backBufferInfo.bmiHeader.biHeight,
+        g_backBufferMemory,
+        &g_backBufferInfo,
+        DIB_RGB_COLORS,
+        SRCCOPY);
+      
+      EndPaint(window, &ps);
+    } break;
     case WM_CLOSE:
     case WM_DESTROY:
     {
       g_shouldRun = false;
-      return 0;
+    } break;
+    default:
+    {
+      return DefWindowProc(window, message, wParam, lParam);
     } break;
   }
 
-  return DefWindowProc(window, message, wParam, lParam);
+  return 0;
 }
 
 int CALLBACK WinMain(
@@ -35,8 +95,8 @@ int CALLBACK WinMain(
   LPSTR     /* cmdLine */,
   int       /* cmdShow */)
 {
-  const int windowWidth = 640;
-  const int windowHeight = 480;
+  g_windowWidth = 640;
+  g_windowHeight = 480;
 
   WNDCLASSEX wndClass {};
   wndClass.cbSize = sizeof(wndClass);
@@ -54,26 +114,17 @@ int CALLBACK WinMain(
     WS_OVERLAPPEDWINDOW | WS_VISIBLE,
     CW_USEDEFAULT,
     CW_USEDEFAULT,
-    windowWidth,
-    windowHeight,
+    g_windowWidth,
+    g_windowHeight,
     0,
     0,
     instance,
     nullptr
   );
 
-  BITMAPINFO backBufferInfo {};
-  backBufferInfo.bmiHeader.biSize = sizeof(backBufferInfo.bmiHeader);
-  backBufferInfo.bmiHeader.biWidth = windowWidth;
-  backBufferInfo.bmiHeader.biHeight = windowHeight;
-  backBufferInfo.bmiHeader.biPlanes = 1;
-  backBufferInfo.bmiHeader.biBitCount = 32;
-  backBufferInfo.bmiHeader.biCompression = BI_RGB;
-  u32* backBufferMemory = new u32[windowWidth * windowHeight];
+  g_backBufferInfo = ResizeRenderingBuffers(&g_backBufferMemory, &g_renderBuffer, g_windowWidth, g_windowHeight);
 
-  Bitmap renderBuffer(windowWidth, windowHeight);
   HDC windowDC = GetDC(window);
-
   MSG message {};
   while (g_shouldRun)
   {
@@ -83,14 +134,14 @@ int CALLBACK WinMain(
       DispatchMessage(&message);
     }
 
-    Render(renderBuffer);
-    for (int y = 0; y < renderBuffer.Height(); ++y)
+    Render(*g_renderBuffer);
+    for (int y = 0; y < g_renderBuffer->Height(); ++y)
     {
-      for (int x = 0; x < renderBuffer.Width(); ++x)
+      for (int x = 0; x < g_renderBuffer->Width(); ++x)
       {
-        Color& bufferColor = renderBuffer(x, y);
+        Color& bufferColor = (*g_renderBuffer)(x, y);
 
-        backBufferMemory[y * windowWidth + x] = 
+        g_backBufferMemory[y * g_renderBuffer->Width() + x] = 
             CompressColorComponent(bufferColor.b) |
             (CompressColorComponent(bufferColor.g) << 8) |
             (CompressColorComponent(bufferColor.r) << 16);
@@ -101,14 +152,14 @@ int CALLBACK WinMain(
       windowDC,
       0,
       0,
-      windowWidth,
-      windowHeight,
+      g_windowWidth,
+      g_windowHeight,
       0,
       0,
-      windowWidth,
-      windowHeight,
-      backBufferMemory,
-      &backBufferInfo,
+      g_backBufferInfo.bmiHeader.biWidth,
+      g_backBufferInfo.bmiHeader.biHeight,
+      g_backBufferMemory,
+      &g_backBufferInfo,
       DIB_RGB_COLORS,
       SRCCOPY);
   }

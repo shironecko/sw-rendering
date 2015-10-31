@@ -19,18 +19,17 @@ struct Color
 class Bitmap
 {
 public:
-  Bitmap(int width, int height) :
+  Bitmap(u32 width, u32 height) :
     m_width(width),
     m_height(height)
   {
-    assert(width > 0 && height > 0);
     m_pixels = new Color[width * height];
   }
 
-  Color& operator () (int x, int y)
+  Color& operator () (u32 x, u32 y)
   {
-    assert(x >= 0 && x < m_width);
-    assert(y >= 0 && y < m_height);
+    assert(x < m_width);
+    assert(y < m_height);
 
     return m_pixels[y * m_width + x];
   }
@@ -39,8 +38,8 @@ public:
   int Height() { return m_height; }
 
 private:
-  int m_width;
-  int m_height;
+  u32 m_width;
+  u32 m_height;
   Color* m_pixels;
 };
 
