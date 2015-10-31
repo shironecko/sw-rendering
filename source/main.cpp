@@ -59,11 +59,17 @@ int CALLBACK WinMain(
     nullptr
   );
 
+  BITMAPINFO backBufferInfo {};
+  backBufferInfo.bmiHeader.biSize = sizeof(backBufferInfo.bmiHeader);
+  backBufferInfo.bmiHeader.biWidth = windowWidth;
+  backBufferInfo.bmiHeader.biHeight = windowHeight;
+  backBufferInfo.bmiHeader.biPlanes = 1;
+  backBufferInfo.bmiHeader.biBitCount = 32;
+  backBufferInfo.bmiHeader.biCompression = BI_RGB;
+  u32* backBufferMemory = new u32[windowWidth * windowHeight];
+
   Bitmap renderBuffer(windowWidth, windowHeight);
   HDC windowDC = GetDC(window);
-  HDC backBufferDC = CreateCompatibleDC(windowDC);
-  HBITMAP backBufferMemory = CreateCompatibleBitmap(backBufferDC, windowWidth, windowHeight);
-  SelectObject (backBufferDC, backBufferMemory);
 
   MSG message {};
   do
@@ -80,15 +86,28 @@ int CALLBACK WinMain(
       for (int x = 0; x < renderBuffer.Width(); ++x)
       {
         Color& bufferColor = renderBuffer(x, y);
-        COLORREF windowColor = RGB(
-            CompressColorComponent(bufferColor.r),
-            CompressColorComponent(bufferColor.g),
-            CompressColorComponent(bufferColor.b));
 
-        SetPixelV(backBufferDC, x, y, windowColor);
+        backBufferMemory[y * windowWidth + x] = 
+            CompressColorComponent(bufferColor.b) |
+            (CompressColorComponent(bufferColor.g) << 8) |
+            (CompressColorComponent(bufferColor.r) << 16);
       }
     }
-    BitBlt(windowDC, 0, 0, windowWidth, windowHeight, backBufferDC, 0, 0, SRCCOPY);
+
+    StretchDIBits(
+      windowDC,
+      0,
+      0,
+      windowWidth,
+      windowHeight,
+      0,
+      0,
+      windowWidth,
+      windowHeight,
+      backBufferMemory,
+      &backBufferInfo,
+      DIB_RGB_COLORS,
+      SRCCOPY);
   } while (message.message != WM_QUIT);
   
   return 0;
