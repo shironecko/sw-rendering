@@ -15,13 +15,13 @@ u8 CompressColorComponent(float component)
   return u8(component * 255.0f);
 }
 
-BITMAPINFO ResizeRenderingBuffers(u32** backBufferMemory, Bitmap** renderBuffer, u32 width, u32 height)
+BITMAPINFO ResizeRenderingBuffers(u32 width, u32 height)
 {
-  delete[] *backBufferMemory;
-  *backBufferMemory = new u32[width * height];
+  delete[] g_backBufferMemory;
+  g_backBufferMemory = new u32[width * height];
 
-  delete *renderBuffer;
-  *renderBuffer = new Bitmap(width, height);
+  delete g_renderBuffer;
+  g_renderBuffer = new Bitmap(width, height);
 
   BITMAPINFO info {};
   info.bmiHeader.biSize = sizeof(info.bmiHeader);
@@ -49,8 +49,8 @@ LRESULT CALLBACK WindowProc(
     } break;
     case WM_EXITSIZEMOVE:
     {
-      if (wParam == SC_SIZE)
-        g_backBufferInfo = ResizeRenderingBuffers(&g_backBufferMemory, &g_renderBuffer, g_windowWidth, g_windowHeight);
+      if (g_windowWidth != g_renderBuffer->Width() || g_windowHeight != g_renderBuffer->Height())
+        g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
         
     } break;
     case WM_PAINT:
@@ -122,7 +122,7 @@ int CALLBACK WinMain(
     nullptr
   );
 
-  g_backBufferInfo = ResizeRenderingBuffers(&g_backBufferMemory, &g_renderBuffer, g_windowWidth, g_windowHeight);
+  g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
   HDC windowDC = GetDC(window);
   MSG message {};

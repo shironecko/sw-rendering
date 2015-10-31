@@ -45,12 +45,12 @@ private:
 
 void Render(Bitmap& bitmap)
 {
-  const Color clearColor { .8f, .3f, .6f, 1.0f };
-  for (int y = 0; y < bitmap.Height(); ++y)
+  const u32 tilingPeriod = 250;
+  for (u32 y = 0; y < bitmap.Height(); ++y)
   {
-    for (int x = 0; x < bitmap.Width(); ++x)
+    for (u32 x = 0; x < bitmap.Width(); ++x)
     {
-      bitmap(x, y) = clearColor;
+      bitmap(x, y) = Color { 0, float(x % tilingPeriod) / tilingPeriod, float(y % tilingPeriod) / tilingPeriod, 1.0f };
     }
   }
 }
