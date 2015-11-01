@@ -1,3 +1,6 @@
+#define _HAS_EXCEPTIONS 0
+#define _STATIC_CPPLIB
+
 #include <windows.h>
 
 #include "types.h"
@@ -135,9 +138,9 @@ int CALLBACK WinMain(
     }
 
     Render(*g_renderBuffer);
-    for (int y = 0; y < g_renderBuffer->Height(); ++y)
+    for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
     {
-      for (int x = 0; x < g_renderBuffer->Width(); ++x)
+      for (u32 x = 0; x < g_renderBuffer->Width(); ++x)
       {
         Color& bufferColor = (*g_renderBuffer)(x, y);
 

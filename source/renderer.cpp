@@ -41,8 +41,8 @@ public:
     return m_pixels[y * m_width + x];
   }
 
-  int Width() { return m_width; }
-  int Height() { return m_height; }
+  u32 Width() { return m_width; }
+  u32 Height() { return m_height; }
 
 private:
   u32 m_width;
@@ -63,9 +63,9 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
       swap(y1, y2);
     }
 
-    float y = y1;
+    float y = float(y1);
     float step = float(y2 - y1) / float(x2 - x1);
-    for (u32 x = x1; x <= x2; ++x)
+    for (i32 x = x1; x <= x2; ++x)
     {
       bitmap(x, u32(y)) = color;
       y += step;
@@ -79,9 +79,9 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
       swap(x1, x2);
     }
 
-    float x = x1;
+    float x = float(x1);
     float step = float(x2 - x1) / float(y2 - y1);
-    for (u32 y = y1; y <= y2; ++y)
+    for (i32 y = y1; y <= y2; ++y)
     {
       bitmap(u32(x), y) = color;
       x += step;
