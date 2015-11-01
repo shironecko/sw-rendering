@@ -1,4 +1,6 @@
 #include <cassert>
+#include <cstdlib>
+#include <algorithm>
 
 struct Color
 {
@@ -48,14 +50,69 @@ private:
   Color* m_pixels;
 };
 
+void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
+{
+  using std::abs;
+  using std::swap;
+
+  if (abs(x2 - x1) > abs(y2 - y1)) // horizontal line
+  {
+    if (x1 > x2)
+    {
+      swap(x1, x2);
+      swap(y1, y2);
+    }
+
+    float y = y1;
+    float step = float(y2 - y1) / float(x2 - x1);
+    for (u32 x = x1; x <= x2; ++x)
+    {
+      bitmap(x, u32(y)) = color;
+      y += step;
+    }
+  }
+  else // vertical line
+  {
+    if (y1 > y2)
+    {
+      swap(y1, y2);
+      swap(x1, x2);
+    }
+
+    float x = x1;
+    float step = float(x2 - x1) / float(y2 - y1);
+    for (u32 y = y1; y <= y2; ++y)
+    {
+      bitmap(u32(x), y) = color;
+      x += step;
+    }
+  }
+}
+
 void Render(Bitmap& bitmap)
 {
-  const u32 tilingPeriod = 250;
+  const Color clearColor { .8f, .3f, .6f, 1.0f };
   for (u32 y = 0; y < bitmap.Height(); ++y)
   {
     for (u32 x = 0; x < bitmap.Width(); ++x)
     {
-      bitmap(x, y) = Color { 0, float(x % tilingPeriod) / tilingPeriod, float(y % tilingPeriod) / tilingPeriod, 1.0f };
+      bitmap(x, y) = clearColor;
     }
   }
+
+  // horizontal lines
+  DrawLine(200, 200, 300, 250, { 1.0f, 1.0f, 1.0f, 1.0f }, bitmap);
+  DrawLine(200, 200, 300, 200, { 1.0f, 1.0f,    0, 1.0f }, bitmap);
+  DrawLine(200, 200, 100, 250, { 1.0f,    0, 1.0f, 1.0f }, bitmap);
+  DrawLine(200, 200, 100, 200, {    0, 1.0f,    0, 1.0f }, bitmap);
+  DrawLine(200, 200, 300, 150, { 1.0f,    0,    0, 1.0f }, bitmap);
+  DrawLine(200, 200, 100, 150, { 0.5f, 0.5f, 0.5f, 1.0f }, bitmap);
+
+  // vertical lines
+  DrawLine(200, 200, 200, 300, {    0,    0,    0, 1.0f }, bitmap);
+  DrawLine(200, 200, 200, 100, { 0.3f, 0.8f, 0.5f, 1.0f }, bitmap);
+  DrawLine(200, 200, 250, 300, { 0.8f, 0.8f, 0.5f, 1.0f }, bitmap);
+  DrawLine(200, 200, 150, 300, { 0.8f, 0.8f, 0.5f, 1.0f }, bitmap);
+  DrawLine(200, 200, 150, 100, { 0.8f, 0.8f, 0.8f, 1.0f }, bitmap);
+  DrawLine(200, 200, 250, 100, { 0.1f, 0.2f, 0.7f, 1.0f }, bitmap);
 }
