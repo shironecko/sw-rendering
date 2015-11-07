@@ -2,8 +2,13 @@
 #define _STATIC_CPPLIB
 
 #include <windows.h>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 #include "types.h"
+#include "math3d.cpp"
 #include "renderer.cpp"
 
 global bool       g_shouldRun = true;
@@ -98,8 +103,8 @@ int CALLBACK WinMain(
   LPSTR     /* cmdLine */,
   int       /* cmdShow */)
 {
-  g_windowWidth = 640;
-  g_windowHeight = 480;
+  g_windowWidth = 1280;
+  g_windowHeight = 720;
 
   WNDCLASSEX wndClass {};
   wndClass.cbSize = sizeof(wndClass);
@@ -127,6 +132,54 @@ int CALLBACK WinMain(
 
   g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
+  // model loading will go here
+  const char* modelPath = "../data/Grimoire.obj";
+  std::vector<Vector4> vertices;
+  std::vector<ModelFace> faces;
+
+  {
+    std::fstream file;
+    file.open(modelPath, std::ios_base::in);
+    std::string input;
+
+    while (std::getline(file, input))
+    {
+      std::stringstream stream;
+      stream.str(input);
+      char lineHeader;
+      stream >> lineHeader;
+      switch (lineHeader)
+      {
+        case 'v':
+        {
+          float x, y, z;
+          stream >> x >> y >> z;
+
+          vertices.push_back(Vector4 { x, y, z, 1.0f });
+        } break;
+        case 'f':
+        {
+          u32 v1, v2, v3;
+          stream >> v1;
+          stream.ignore(u32(-1), ' ');
+          stream >> v2;
+          stream.ignore(u32(-1), ' ');
+          stream >> v3;
+
+          faces.push_back(ModelFace { { v1 - 1, v2 - 1, v3 - 1 } });
+
+          stream.ignore(u32(-1), ' ');
+          u32 v4;
+          if (stream >> v4)
+          {
+            faces.push_back(ModelFace { { v3 - 1, v4 - 1, v1 - 1 } });
+          }
+        } break;
+      }
+    }
+  }
+
+
   HDC windowDC = GetDC(window);
   MSG message {};
   while (g_shouldRun)
@@ -137,7 +190,7 @@ int CALLBACK WinMain(
       DispatchMessage(&message);
     }
 
-    Render(*g_renderBuffer);
+    Render(*g_renderBuffer, vertices, faces);
     for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
     {
       for (u32 x = 0; x < g_renderBuffer->Width(); ++x)

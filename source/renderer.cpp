@@ -1,3 +1,4 @@
+#include <vector>
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>
@@ -16,6 +17,11 @@ struct Color
       float a;
     };
   };
+};
+
+struct ModelFace
+{
+  u32 vertices[3];
 };
 
 class Bitmap
@@ -89,9 +95,9 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
   }
 }
 
-void Render(Bitmap& bitmap)
+void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFace>& faces)
 {
-  const Color clearColor { .8f, .3f, .6f, 1.0f };
+  const Color clearColor { 0, 0, 0, 0};
   for (u32 y = 0; y < bitmap.Height(); ++y)
   {
     for (u32 x = 0; x < bitmap.Width(); ++x)
@@ -100,19 +106,25 @@ void Render(Bitmap& bitmap)
     }
   }
 
-  // horizontal lines
-  DrawLine(200, 200, 300, 250, { 1.0f, 1.0f, 1.0f, 1.0f }, bitmap);
-  DrawLine(200, 200, 300, 200, { 1.0f, 1.0f,    0, 1.0f }, bitmap);
-  DrawLine(200, 200, 100, 250, { 1.0f,    0, 1.0f, 1.0f }, bitmap);
-  DrawLine(200, 200, 100, 200, {    0, 1.0f,    0, 1.0f }, bitmap);
-  DrawLine(200, 200, 300, 150, { 1.0f,    0,    0, 1.0f }, bitmap);
-  DrawLine(200, 200, 100, 150, { 0.5f, 0.5f, 0.5f, 1.0f }, bitmap);
+  const Color modelColor { 1.0f, 1.0f, 1.0f, 1.0f };
+  const float scale = 300.0f;
+  for (auto& face: faces)
+  {
+    Vector4 v1 = vertices[face.vertices[0]];
+    Vector4 v2 = vertices[face.vertices[1]];
+    Vector4 v3 = vertices[face.vertices[2]];
 
-  // vertical lines
-  DrawLine(200, 200, 200, 300, {    0,    0,    0, 1.0f }, bitmap);
-  DrawLine(200, 200, 200, 100, { 0.3f, 0.8f, 0.5f, 1.0f }, bitmap);
-  DrawLine(200, 200, 250, 300, { 0.8f, 0.8f, 0.5f, 1.0f }, bitmap);
-  DrawLine(200, 200, 150, 300, { 0.8f, 0.8f, 0.5f, 1.0f }, bitmap);
-  DrawLine(200, 200, 150, 100, { 0.8f, 0.8f, 0.8f, 1.0f }, bitmap);
-  DrawLine(200, 200, 250, 100, { 0.1f, 0.2f, 0.7f, 1.0f }, bitmap);
+    u32 x1 = u32(v1.x * scale + scale);
+    u32 y1 = u32(v1.y * scale + scale);
+
+    u32 x2 = u32(v2.x * scale + scale);
+    u32 y2 = u32(v2.y * scale + scale);
+
+    u32 x3 = u32(v3.x * scale + scale);
+    u32 y3 = u32(v3.y * scale + scale);
+
+    DrawLine(x1, y1, x2, y2, modelColor, bitmap);
+    DrawLine(x2, y2, x3, y3, modelColor, bitmap);
+    DrawLine(x3, y3, x1, y1, modelColor, bitmap);
+  }
 }
