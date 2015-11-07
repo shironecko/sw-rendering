@@ -107,21 +107,37 @@ void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFac
   }
 
   const Color modelColor { 1.0f, 1.0f, 1.0f, 1.0f };
-  const float scale = 300.0f;
+  const float s = 300.0f;
+  const Matrix4x4 scale
+  {
+    Vector4 {    s,    0,    0,    0 },
+    Vector4 {    0,    s,    0,    0 },
+    Vector4 {    0,    0,    s,    0 },
+    Vector4 {    0,    0,    0, 1.0f }
+  };
+  const Matrix4x4 translation
+  {
+    Vector4 { 1.0f,    0,    0,    s },
+    Vector4 {    0, 1.0f,    0,    s },
+    Vector4 {    0,    0, 1.0f,    s },
+    Vector4 {    0,    0,    0, 1.0f }
+  };
+  const Matrix4x4 transform = translation * scale;
+
   for (auto& face: faces)
   {
-    Vector4 v1 = vertices[face.vertices[0]];
-    Vector4 v2 = vertices[face.vertices[1]];
-    Vector4 v3 = vertices[face.vertices[2]];
+    Vector4 v1 = transform * vertices[face.vertices[0]];
+    Vector4 v2 = transform * vertices[face.vertices[1]];
+    Vector4 v3 = transform * vertices[face.vertices[2]];
 
-    u32 x1 = u32(v1.x * scale + scale);
-    u32 y1 = u32(v1.y * scale + scale);
+    u32 x1 = u32(v1.x);
+    u32 y1 = u32(v1.y);
 
-    u32 x2 = u32(v2.x * scale + scale);
-    u32 y2 = u32(v2.y * scale + scale);
+    u32 x2 = u32(v2.x);
+    u32 y2 = u32(v2.y);
 
-    u32 x3 = u32(v3.x * scale + scale);
-    u32 y3 = u32(v3.y * scale + scale);
+    u32 x3 = u32(v3.x);
+    u32 y3 = u32(v3.y);
 
     DrawLine(x1, y1, x2, y2, modelColor, bitmap);
     DrawLine(x2, y2, x3, y3, modelColor, bitmap);
