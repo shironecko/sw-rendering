@@ -110,19 +110,21 @@ void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFac
   const float s = 300.0f;
   const Matrix4x4 scale
   {
-    Vector4 {    s,    0,    0,    0 },
-    Vector4 {    0,    s,    0,    0 },
-    Vector4 {    0,    0,    s,    0 },
-    Vector4 {    0,    0,    0, 1.0f }
+        s,    0,    0,    0,
+        0,    s,    0,    0,
+        0,    0,    s,    0,
+        0,    0,    0, 1.0f
   };
   const Matrix4x4 translation
   {
-    Vector4 { 1.0f,    0,    0,    s },
-    Vector4 {    0, 1.0f,    0,    s },
-    Vector4 {    0,    0, 1.0f,    s },
-    Vector4 {    0,    0,    0, 1.0f }
+     1.0f,    0,    0,    s,
+        0, 1.0f,    0,    s,
+        0,    0, 1.0f,    s,
+        0,    0,    0, 1.0f
   };
-  const Matrix4x4 transform = translation * scale;
+  Matrix4x4 transform = translation * scale;
+  transform *= translation;
+  transform *= translation.Inverse();
 
   for (auto& face: faces)
   {
