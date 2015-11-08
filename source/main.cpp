@@ -2,6 +2,7 @@
 #define _STATIC_CPPLIB
 
 #include <windows.h>
+#include <cassert>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -22,6 +23,7 @@ u8 CompressColorComponent(float component)
 {
   return u8(component * 255.0f);
 }
+
 
 BITMAPINFO ResizeRenderingBuffers(u32 width, u32 height)
 {
@@ -133,13 +135,15 @@ int CALLBACK WinMain(
   g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
   // model loading will go here
-  const char* modelPath = "../data/Grimoire.obj";
+  //const char* modelPath = "../data/Grimoire.obj";
+  const char* modelPath = "../data/head.obj";
   std::vector<Vector4> vertices;
   std::vector<ModelFace> faces;
 
   {
     std::fstream file;
     file.open(modelPath, std::ios_base::in);
+    assert(file.is_open());
     std::string input;
 
     while (std::getline(file, input))

@@ -107,7 +107,7 @@ void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFac
   }
 
   const Color modelColor { 1.0f, 1.0f, 1.0f, 1.0f };
-  const float s = 300.0f;
+  const float s = 1.0f;
   const Matrix4x4 scale
   {
         s,    0,    0,    0,
@@ -115,31 +115,59 @@ void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFac
         0,    0,    s,    0,
         0,    0,    0, 1.0f
   };
-  const Matrix4x4 translation
-  {
-     1.0f,    0,    0,    s,
-        0, 1.0f,    0,    s,
-        0,    0, 1.0f,    s,
-        0,    0,    0, 1.0f
-  };
-  Matrix4x4 transform = translation * scale;
-  transform *= translation;
-  transform *= translation.Inverse();
+  Matrix4x4 model = scale;
+  Matrix4x4 view = Matrix4x4::LookAtCamera( 
+      { 0.0f, 0.0f, 2.0f, 1.0f }, 
+      {    0,    0,    0, 1.0f },
+      {    0, 1.0f,    0,    0 });
+  Matrix4x4 projection = Matrix4x4::Projection(
+      90.0f, 
+      float(bitmap.Width()) / float(bitmap.Height()),
+      0.1f,
+      1000.0f);
+  Matrix4x4 screen = Matrix4x4::ScreenSpace( bitmap.Width(), bitmap.Height()); 
+  Matrix4x4 transform = projection * view * model;
 
   for (auto& face: faces)
   {
-    Vector4 v1 = transform * vertices[face.vertices[0]];
-    Vector4 v2 = transform * vertices[face.vertices[1]];
-    Vector4 v3 = transform * vertices[face.vertices[2]];
+    /* Vector4 test = vertices[face.vertices[0]]; */
+    /* test = model * test; */
+    /* test = view * test; */
+    /* test = projection * test; */
+    /* test = test / test.w; */
+    /* test = screen * test; */
 
-    u32 x1 = u32(v1.x);
-    u32 y1 = u32(v1.y);
+    Vector4 verts[3];
+    verts[0] = transform * vertices[face.vertices[0]];
+    verts[1] = transform * vertices[face.vertices[1]];
+    verts[2] = transform * vertices[face.vertices[2]];
 
-    u32 x2 = u32(v2.x);
-    u32 y2 = u32(v2.y);
+    bool isInsideFrustrum = true;
+    for (Vector4& vert: verts)
+    {
+      if (vert.x > vert.w || vert.x < -vert.w ||
+          vert.y > vert.w || vert.y < -vert.w ||
+          vert.z > vert.w || vert.z < -vert.w)
+      {
+        isInsideFrustrum = false;
+        break;
+      }
 
-    u32 x3 = u32(v3.x);
-    u32 y3 = u32(v3.y);
+      vert = vert / vert.w;
+      vert = screen * vert;
+    }
+
+    if (!isInsideFrustrum)
+      continue;
+
+    u32 x1 = u32(verts[0].x);
+    u32 y1 = u32(verts[0].y);
+
+    u32 x2 = u32(verts[1].x);
+    u32 y2 = u32(verts[1].y);
+
+    u32 x3 = u32(verts[2].x);
+    u32 y3 = u32(verts[2].y);
 
     DrawLine(x1, y1, x2, y2, modelColor, bitmap);
     DrawLine(x2, y2, x3, y3, modelColor, bitmap);
