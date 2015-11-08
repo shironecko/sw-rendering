@@ -174,6 +174,17 @@ struct Matrix4x4
     return result;
   }
 
+  static Matrix4x4 RotationY(float angle)
+  {
+    return Matrix4x4
+    {
+       cos(angle), 0, sin(angle), 0,
+                0, 1,      0, 0,
+      -sin(angle), 0, cos(angle), 0,
+                0, 0,      0, 1
+    };
+  }
+
   static Matrix4x4 LookAtCamera(Vector4 eye, Vector4 target, Vector4 up)
   {
     assert(abs(up.Length3() - 1.0f) < 0.0001f);

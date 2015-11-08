@@ -95,7 +95,7 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
   }
 }
 
-void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFace>& faces)
+void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFace>& faces, float camDistance, float camRotY)
 {
   const Color clearColor { 0, 0, 0, 0};
   for (u32 y = 0; y < bitmap.Height(); ++y)
@@ -116,10 +116,14 @@ void Render(Bitmap& bitmap, std::vector<Vector4>& vertices, std::vector<ModelFac
         0,    0,    0, 1.0f
   };
   Matrix4x4 model = scale;
+
+  Vector4 camPos { 0, 0, camDistance, 1.0f };
+  camPos = Matrix4x4::RotationY(camRotY) * camPos;
   Matrix4x4 view = Matrix4x4::LookAtCamera( 
-      { 0.0f, 0.0f, 2.0f, 1.0f }, 
+      camPos,
       {    0,    0,    0, 1.0f },
       {    0, 1.0f,    0,    0 });
+
   Matrix4x4 projection = Matrix4x4::Projection(
       90.0f, 
       float(bitmap.Width()) / float(bitmap.Height()),

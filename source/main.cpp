@@ -135,8 +135,8 @@ int CALLBACK WinMain(
   g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
   // model loading will go here
-  //const char* modelPath = "../data/Grimoire.obj";
-  const char* modelPath = "../data/head.obj";
+  const char* modelPath = "../data/Grimoire.obj";
+  //const char* modelPath = "../data/head.obj";
   std::vector<Vector4> vertices;
   std::vector<ModelFace> faces;
 
@@ -186,15 +186,35 @@ int CALLBACK WinMain(
 
   HDC windowDC = GetDC(window);
   MSG message {};
+  bool keys[256] {};
+  float camDistance = 2.0f;
+  float camMoveSpeed = 0.05f;
+  float camRotation = 0;
+  float camRotationSpeed = 0.1f;
   while (g_shouldRun)
   {
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
       TranslateMessage(&message);
+
+      if (message.message == WM_KEYDOWN)
+        keys[message.wParam] = true;
+      else if (message.message == WM_KEYUP)
+        keys[message.wParam] = false;
+
       DispatchMessage(&message);
     }
 
-    Render(*g_renderBuffer, vertices, faces);
+    if (keys[VK_DOWN])
+      camDistance += camMoveSpeed;
+    if (keys[VK_UP])
+      camDistance -= camMoveSpeed;
+    if (keys[VK_RIGHT])
+      camRotation += camRotationSpeed;
+    if (keys[VK_LEFT])
+      camRotation -= camRotationSpeed;
+
+    Render(*g_renderBuffer, vertices, faces, camDistance, camRotation);
     for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
     {
       for (u32 x = 0; x < g_renderBuffer->Width(); ++x)
