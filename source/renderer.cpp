@@ -22,6 +22,8 @@ struct Color
 struct ModelFace
 {
   u32 vertices[3];
+  u32 uvs[3];
+  u32 normals[3];
 };
 
 class Bitmap

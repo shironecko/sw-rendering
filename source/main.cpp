@@ -4,9 +4,11 @@
 #include <windows.h>
 #include <cassert>
 #include <vector>
+#include <array>
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cstdio>
 
 #include "types.h"
 #include "math3d.cpp"
@@ -105,7 +107,7 @@ int CALLBACK WinMain(
   LPSTR     /* cmdLine */,
   int       /* cmdShow */)
 {
-  g_windowWidth = 1280;
+  g_windowWidth = 720;
   g_windowHeight = 720;
 
   WNDCLASSEX wndClass {};
@@ -137,6 +139,8 @@ int CALLBACK WinMain(
   // model loading will go here
   const char* modelPath = "../data/Creeper/creeper.obj";
   std::vector<Vector4> vertices;
+  std::vector<std::array<float, 2>> uvs;
+  std::vector<Vector4> normales;
   std::vector<ModelFace> faces;
 
   {
@@ -155,27 +159,72 @@ int CALLBACK WinMain(
       {
         case 'v':
         {
-          float x, y, z;
-          stream >> x >> y >> z;
+          char secondChar;
+          stream.get(secondChar);
+          switch (secondChar)
+          {
+            case ' ':
+            {
+              float x, y, z;
+              stream >> x >> y >> z;
 
-          vertices.push_back(Vector4 { x, y, z, 1.0f });
+              vertices.push_back(Vector4 { x, y, z, 1.0f });
+            } break;
+            case 't':
+            {
+              float u, v;
+              stream >> u >> v;
+
+              uvs.push_back({{ u, v }});
+            } break;
+            case 'n':
+            {
+              float x, y, z;
+              stream >> x >> y >> z;
+
+              normales.push_back(Vector4 { x, y, z, 0 });
+            } break;
+          }
         } break;
         case 'f':
         {
           u32 v1, v2, v3;
-          stream >> v1;
-          stream.ignore(u32(-1), ' ');
-          stream >> v2;
-          stream.ignore(u32(-1), ' ');
-          stream >> v3;
+          u32 uv1, uv2, uv3;
+          u32 n1, n2, n3;
 
-          faces.push_back(ModelFace { { v1 - 1, v2 - 1, v3 - 1 } });
+          stream >> v1;
+          stream.ignore(u32(-1), '/');
+          stream >> uv1;
+          stream.ignore(u32(-1), '/');
+          stream >> n1;
+
+          stream >> v2;
+          stream.ignore(u32(-1), '/');
+          stream >> uv2;
+          stream.ignore(u32(-1), '/');
+          stream >> n2;
+
+          stream >> v3;
+          stream.ignore(u32(-1), '/');
+          stream >> uv3;
+          stream.ignore(u32(-1), '/');
+          stream >> n3;
+
+          ModelFace face
+          {
+            {  v1 - 1,  v2 - 1,  v3 - 1 },
+            { uv1 - 1, uv2 - 1, uv3 - 1 },
+            {  n1 - 1,  n2 - 1,  n3 - 1 }
+          };
+          faces.push_back(face);
 
           stream.ignore(u32(-1), ' ');
           u32 v4;
           if (stream >> v4)
           {
-            faces.push_back(ModelFace { { v3 - 1, v4 - 1, v1 - 1 } });
+            // I don't want to waste time on quads now
+            assert(false);
+            //faces.push_back(ModelFace { { v3 - 1, v4 - 1, v1 - 1 } });
           }
         } break;
       }
@@ -186,12 +235,29 @@ int CALLBACK WinMain(
   HDC windowDC = GetDC(window);
   MSG message {};
   bool keys[256] {};
-  float camDistance = 4.0f;
-  float camMoveSpeed = 0.05f;
+  float camDistance = 5.0f;
+  float camMoveSpeed = 2.0f;
   float camRotation = 0;
-  float camRotationSpeed = 0.1f;
+  float camRotationSpeed = 2.0f;
+
+  LARGE_INTEGER lastFrameTime;
+  LARGE_INTEGER queryFrequency;
+  QueryPerformanceCounter(&lastFrameTime);
+  QueryPerformanceFrequency(&queryFrequency);
+
   while (g_shouldRun)
   {
+    LARGE_INTEGER currentFrameTime;
+    QueryPerformanceCounter(&currentFrameTime);
+    u64 ticksElapsed = currentFrameTime.QuadPart - lastFrameTime.QuadPart;
+    float deltaTime = float(ticksElapsed) / float(queryFrequency.QuadPart);
+    lastFrameTime = currentFrameTime;
+
+    char windowTitle[256];
+    _snprintf_s(windowTitle, 256, 255, "Software Renderer \t %.2fms per frame", deltaTime * 1000.0f);
+    SetWindowText(window, windowTitle);
+
+
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
       TranslateMessage(&message);
@@ -205,14 +271,14 @@ int CALLBACK WinMain(
     }
 
     if (keys[VK_DOWN])
-      camDistance += camMoveSpeed;
+      camDistance += camMoveSpeed * deltaTime;
     if (keys[VK_UP])
-      camDistance -= camMoveSpeed;
+      camDistance -= camMoveSpeed * deltaTime;
     if (keys[VK_RIGHT])
-      camRotation += camRotationSpeed;
+      camRotation += camRotationSpeed * deltaTime;
     if (keys[VK_LEFT])
-      camRotation -= camRotationSpeed;
-
+      camRotation -= camRotationSpeed * deltaTime;
+    
     Render(*g_renderBuffer, vertices, faces, camDistance, camRotation);
     for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
     {
