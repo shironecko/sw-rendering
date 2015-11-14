@@ -135,8 +135,7 @@ int CALLBACK WinMain(
   g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
   // model loading will go here
-  const char* modelPath = "../data/Grimoire.obj";
-  //const char* modelPath = "../data/head.obj";
+  const char* modelPath = "../data/Creeper/creeper.obj";
   std::vector<Vector4> vertices;
   std::vector<ModelFace> faces;
 
@@ -187,7 +186,7 @@ int CALLBACK WinMain(
   HDC windowDC = GetDC(window);
   MSG message {};
   bool keys[256] {};
-  float camDistance = 2.0f;
+  float camDistance = 4.0f;
   float camMoveSpeed = 0.05f;
   float camRotation = 0;
   float camRotationSpeed = 0.1f;
