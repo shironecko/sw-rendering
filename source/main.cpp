@@ -20,6 +20,7 @@ global u32        g_windowHeight;
 global BITMAPINFO g_backBufferInfo;
 global u32*       g_backBufferMemory;
 global Bitmap*    g_renderBuffer;
+global std::vector<float> g_zBuffer;
 
 u8 CompressColorComponent(float component)
 {
@@ -34,6 +35,9 @@ BITMAPINFO ResizeRenderingBuffers(u32 width, u32 height)
 
   delete g_renderBuffer;
   g_renderBuffer = new Bitmap(width, height);
+
+  g_zBuffer.resize(width * height);
+  g_zBuffer.shrink_to_fit();
 
   BITMAPINFO info {};
   info.bmiHeader.biSize = sizeof(info.bmiHeader);
@@ -279,7 +283,19 @@ int CALLBACK WinMain(
     if (keys[VK_LEFT])
       camRotation -= camRotationSpeed * deltaTime;
     
-    Render(*g_renderBuffer, vertices, faces, camDistance, camRotation);
+    Vector4 sunlightDirection { 1.0f, 1.0f, 1.0f, 0 };
+    u32 renderMode = RenderMode::Shaded;
+    Render(
+        *g_renderBuffer,
+        g_zBuffer,
+        renderMode,
+        vertices,
+        uvs,
+        normales,
+        faces,
+        camDistance, camRotation,
+        sunlightDirection.Normalized3());
+
     for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
     {
       for (u32 x = 0; x < g_renderBuffer->Width(); ++x)

@@ -174,6 +174,17 @@ struct Matrix4x4
     return result;
   }
 
+  static Matrix4x4 Identity()
+  {
+    return Matrix4x4
+    {
+      1.0f,    0,    0,    0,
+         0, 1.0f,    0,    0,
+         0,    0, 1.0f,    0,
+         0,    0,    0, 1.0f
+    };
+  }
+
   static Matrix4x4 RotationY(float angle)
   {
     return Matrix4x4
