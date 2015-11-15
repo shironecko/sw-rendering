@@ -111,8 +111,9 @@ int CALLBACK WinMain(
   LPSTR     /* cmdLine */,
   int       /* cmdShow */)
 {
-  g_windowWidth = 720;
-  g_windowHeight = 720;
+  //*****CREATING A WINDOW*****//
+  g_windowWidth = 1080;
+  g_windowHeight = 1080;
 
   WNDCLASSEX wndClass {};
   wndClass.cbSize = sizeof(wndClass);
@@ -140,7 +141,7 @@ int CALLBACK WinMain(
 
   g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
 
-  // model loading will go here
+  //*****MODEL LOADING*****//
   const char* modelPath = "../data/Creeper/creeper.obj";
   std::vector<Vector4> vertices;
   std::vector<std::array<float, 2>> uvs;
@@ -235,7 +236,53 @@ int CALLBACK WinMain(
     }
   }
 
+  //*****LOADING TEXTURE*****//
+  Color32* colorTexture = nullptr;
+  u32 colorTextureWidth = 0;
+  u32 colorTextureHeight = 0;
+  const char* texturePath = "../data/Creeper/color.bmp";
+  {
+    std::fstream texture;
+    texture.open(texturePath, std::ios_base::in | std::ios_base::binary);
+    assert(texture.is_open());
 
+    BITMAPFILEHEADER textureHeader;
+    const u16 bitmapFileType = (u16('M') << 8) | u16('B');
+    texture.read((char*)&textureHeader, sizeof(textureHeader));
+    assert(textureHeader.bfType == bitmapFileType);
+
+    BITMAPINFOHEADER textureInfo;
+    texture.read((char*)&textureInfo, sizeof(textureInfo));
+    assert(textureInfo.biBitCount == 24);
+    assert(textureInfo.biCompression == BI_RGB);
+    colorTextureWidth = textureInfo.biWidth;
+    colorTextureHeight = textureInfo.biHeight;
+    u32 texturePixelsCount = colorTextureWidth * colorTextureHeight;
+    colorTexture = new Color32[texturePixelsCount];
+
+    /* texture.seekg(textureHeader.bfOffBits); */
+    texture.ignore(textureHeader.bfOffBits - sizeof(textureHeader) - sizeof(textureInfo));
+    u32 paddingBytes = 4 - ((3 * colorTextureWidth) % 4);
+    paddingBytes %= 4;
+    for (u32 y = 0; y < colorTextureHeight; ++y)
+    {
+      for (u32 x = 0; x < colorTextureWidth; ++x)
+      {
+        u8 r, g, b;
+        // fuck you, C++ and STL...
+        texture.read((char*)&b, 1);
+        texture.read((char*)&g, 1);
+        texture.read((char*)&r, 1);
+        colorTexture[y * colorTextureWidth + x] = { r, g, b, 0 };
+      }
+
+      if (paddingBytes)
+        texture.ignore(paddingBytes);
+    }
+  }
+
+
+  //*****MISC SETUP*****//
   HDC windowDC = GetDC(window);
   MSG message {};
   bool keys[256] {};
@@ -249,6 +296,7 @@ int CALLBACK WinMain(
   QueryPerformanceCounter(&lastFrameTime);
   QueryPerformanceFrequency(&queryFrequency);
 
+  //*****RENDERING LOOP*****//
   while (g_shouldRun)
   {
     LARGE_INTEGER currentFrameTime;
@@ -293,6 +341,9 @@ int CALLBACK WinMain(
         uvs,
         normales,
         faces,
+        colorTexture,
+        colorTextureWidth,
+        colorTextureHeight,
         camDistance, camRotation,
         sunlightDirection.Normalized3());
 

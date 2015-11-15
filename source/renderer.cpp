@@ -8,7 +8,7 @@ struct Color
 {
   union
   {
-    float component[4];
+    float components[4];
 
     struct
     {
@@ -16,6 +16,22 @@ struct Color
       float g;
       float b;
       float a;
+    };
+  };
+};
+
+struct Color32
+{
+  union
+  {
+    u8 components[4];
+
+    struct
+    {
+      u8 r;
+      u8 g;
+      u8 b;
+      u8 padding;
     };
   };
 };
@@ -117,6 +133,9 @@ void Render(
     std::vector<std::array<float, 2>>& uvs,
     std::vector<Vector4>& normales,
     std::vector<ModelFace>& faces,
+    Color32* colorTexture,
+    u32 colorTextureWidth,
+    u32 colorTextureHeight,
     float camDistance, float camRotY,
     Vector4 sunlightDirection)
 {
@@ -225,6 +244,11 @@ void Render(
         }
       };
 
+      std::array<float, 2> faceUvs[3];
+      faceUvs[0] = uvs[face.uvs[0]];
+      faceUvs[1] = uvs[face.uvs[1]];
+      faceUvs[2] = uvs[face.uvs[2]];
+
       Vector2 a { float(x1), float(y1) };
       Vector2 b { float(x2), float(y2) };
       Vector2 c { float(x3), float(y3) };
@@ -265,7 +289,19 @@ void Render(
             else if (l > 1.0f)
               l = 1.0f;
 
-            bitmap(x, y) = Color { l, l, l, 1.0f };
+            float tu = faceUvs[1][0] * v + faceUvs[2][0] * w + faceUvs[0][0] * u;
+            float tv = faceUvs[1][1] * v + faceUvs[2][1] * w + faceUvs[0][1] * u;
+            tu *= colorTextureWidth;
+            tv *= colorTextureHeight;
+            Color32 texel = colorTexture[u32(tv) * colorTextureWidth + u32(tu)];
+            bitmap(x, y) = Color 
+            { 
+              float(texel.r) / 255.0f * l,
+              float(texel.g) / 255.0f * l,
+              float(texel.b) / 255.0f * l,
+              1.0f
+            };
+
             zBuffer[zIndex] = z;
           }
         }
