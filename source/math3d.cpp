@@ -5,6 +5,29 @@
 
 const float PI = float(3.14159265359);
 
+struct Vector2
+{
+  union
+  {
+    float components[2];
+    struct
+    {
+      float x;
+      float y;
+    };
+  };
+
+  float Dot(Vector2 other) const
+  {
+    return x * other.x + y * other.y;
+  }
+
+  Vector2 operator - (Vector2 other) const
+  {
+    return Vector2 { x - other.x, y - other.y };
+  }
+};
+
 struct Vector4
 {
   union
