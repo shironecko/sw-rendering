@@ -4,6 +4,8 @@
  * ftp://download.intel.com/design/pentiumiii/sml/24504301.pdf
  */
 
+#include "intrin.h"
+
 #pragma warning(push)
 #pragma warning(disable:4700)
 void PIII_Inverse_4x4(float* src)
