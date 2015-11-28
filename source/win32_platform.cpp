@@ -9,7 +9,54 @@
 
 #define assert(x) __nop()
 
+#include "types.cpp"
+
+u32 PlatformLoadFile(char* path, void* memory, u32 memorySize);
+
+#ifdef GAME_PROJECT
 #include "game.cpp"
+#elif defined(RESOURCE_CONVERTER_PROJECT)
+#include "resource_converter.cpp"
+#else
+#error "You did not specified project type!"
+#endif
+
+u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
+{
+  HANDLE fileHandle = CreateFile(
+    path,
+    GENERIC_READ,
+    FILE_SHARE_READ,
+    nullptr,
+    OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
+
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to open a file!\n");
+    return 0;
+  }
+
+  DWORD bytesRead;
+  BOOL readResult = ReadFile(
+    fileHandle,
+    memory,
+    memorySize,
+    &bytesRead,
+    nullptr
+  );
+
+  if (!readResult)
+  {
+    OutputDebugStringA("Was not able to read from a file!\n");
+    return 0;
+  }
+
+  CloseHandle(fileHandle);
+  return bytesRead;
+}
 
 struct Win32BackBuffer
 {
@@ -147,7 +194,7 @@ LRESULT CALLBACK Win32WindowProc(
 int CALLBACK WinMain(
   HINSTANCE instance,
   HINSTANCE /* prevInstance */,
-  LPSTR     /* cmdLine */,
+  char*     /* cmdLine */,
   int       /* cmdShow */)
 {
   //*****CREATING A WINDOW*****//

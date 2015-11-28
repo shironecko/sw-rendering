@@ -1,4 +1,3 @@
-#include "types.cpp"
 #include "math3d.cpp"
 #include "renderer.cpp"
 
