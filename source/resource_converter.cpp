@@ -1,6 +1,17 @@
 #include "math3d.cpp"
 #include "renderer.cpp"
 
+u32 SkipLine(char* inText)
+{
+  char* text = inText;
+  while (*text != 0x0A && *text != 0)
+  {
+    ++text;
+  }
+
+  return text - inText + 1;
+}
+
 bool IsNumber(char c)
 {
   return c >= '0' && c <= '9';
@@ -155,18 +166,12 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
           } break;
           default:
           {
-            ++i;
+            i += SkipLine(text + i);
           } break;
         }
       } break;
       case 'f':
       {
-        if (text[i + 1] != ' ')
-        {
-          ++i;
-          continue;
-        }
-
         ModelFace face;
         i += 2;
         for (u32 j = 0; j < 3; ++j)
@@ -187,8 +192,8 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
       } break;
       default:
       {
-        // almost nothing to do here...
-        ++i;
+        // lets skip a line here...
+        i += SkipLine(text + i);
       } break;
     }
   }
