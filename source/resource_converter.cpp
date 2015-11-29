@@ -6,35 +6,61 @@ bool IsNumber(char c)
   return c >= '0' && c <= '9';
 }
 
-u32 ParseFloat(char* inText, float* outFloat)
+u32 ParseUInteger(char* inText, u32* outUInt)
 {
   char* text = inText;
-  float result = 0;
+  u32 result = 0;
 
-  if (*text == '-')
+  while (IsNumber(*text))
   {
-    result = -0;
+    result *= 10;
+    result += *text - '0';
     ++text;
   }
 
-  float multiplier = 10.0f;
+  *outUInt = result;
+  return text - inText;
+}
+
+u32 ParseFloat(char* inText, float* outFloat)
+{
+  char* text = inText;
+  bool positive = true;
+  u32 fraction = 0;
+
+  if (*text == '-')
+  {
+    positive = false;
+    ++text;
+  }
+
+  bool pointEncountered = false;
+  u32 divisor = 1;
   for (;;)
   {
     char c = *text;
     if (IsNumber(c))
     {
-      result *= multiplier;
-      result += c - '0';
+      fraction *= 10;
+      fraction += c - '0';
+
       ++text;
+
+      if (pointEncountered)
+        divisor *= 10;
     }
     else if (c == '.')
     {
-      multiplier = 1.0f / 10.0f;
+      pointEncountered = true;
       ++text;
     }
     else
       break;
   }
+
+  float result = float(fraction) / float(divisor); 
+  if (!positive)
+    result *= -1.0f;
 
   *outFloat = result;
   return text - inText;
@@ -85,7 +111,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   assert(u32((u8*)memory - (u8*)gameMemory) < gameMemorySize);
 
-  for (u32 i = 0; i < fileSize; ++i)
+  for (u32 i = 0; i < fileSize;)
   {
     switch (text[i])
     {
@@ -105,10 +131,21 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
           } break;
           case 't':
           {
+            i += 3;
+            Vector2 uv;
+
+            for (u32 j = 0; j < 2; ++j)
+            {
+              i += ParseFloat(text + i, &uv.components[j]);
+              ++i;
+            }
+
+            *uvs = uv;
+            ++uvs;
           } break;
           case 'n':
           {
-            i += 2;
+            i += 3;
             Vector4 normale;
             i += ParseVector3(text + i, &normale);
             normale.w = 1.0f;
@@ -116,14 +153,42 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
             *normales = normale;
             ++normales;
           } break;
+          default:
+          {
+            ++i;
+          } break;
         }
       } break;
       case 'f':
       {
+        if (text[i + 1] != ' ')
+        {
+          ++i;
+          continue;
+        }
+
+        ModelFace face;
+        i += 2;
+        for (u32 j = 0; j < 3; ++j)
+        {
+          i += ParseUInteger(text + i, &face.vertices[j]);
+          --face.vertices[j];
+          ++i;
+          i += ParseUInteger(text + i, &face.uvs[j]);
+          --face.uvs[j];
+          ++i;
+          i += ParseUInteger(text + i, &face.normals[j]);
+          --face.normals[j];
+          ++i;
+        }
+
+        *faces = face;
+        ++faces;
       } break;
       default:
       {
-        // nothing to do here...
+        // almost nothing to do here...
+        ++i;
       } break;
     }
   }
