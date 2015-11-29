@@ -36,7 +36,7 @@ struct Color32
   };
 };
 
-struct ModelFace
+struct MeshFace
 {
   u32 vertices[3];
   u32 uvs[3];
@@ -139,7 +139,7 @@ struct RenderTarget
 /*     std::vector<Vector4>& vertices, */
 /*     std::vector<std::array<float, 2>>& uvs, */
 /*     std::vector<Vector4>& normales, */
-/*     std::vector<ModelFace>& faces, */
+/*     std::vector<MeshFace>& faces, */
 /*     Color32* colorTexture, */
 /*     u32 colorTextureWidth, */
 /*     u32 colorTextureHeight, */

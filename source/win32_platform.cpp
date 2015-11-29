@@ -12,6 +12,7 @@
 #include "types.cpp"
 
 u32 PlatformLoadFile(char* path, void* memory, u32 memorySize);
+bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
 
 #ifdef GAME_PROJECT
 #include "game.cpp"
@@ -56,6 +57,51 @@ u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
 
   CloseHandle(fileHandle);
   return bytesRead;
+}
+
+bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite)
+{
+  HANDLE fileHandle = CreateFile(
+    path,
+    GENERIC_WRITE,
+    0,
+    nullptr,
+    CREATE_ALWAYS,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
+
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to create or owerwrite a file!\n");
+    return false;
+  }
+
+  DWORD bytesWritten;
+  BOOL writeResult = WriteFile(
+    fileHandle,
+    memory,
+    bytesToWrite,
+    &bytesWritten,
+    nullptr
+  );
+
+  if (!writeResult)
+  {
+    OutputDebugStringA("Was not able to write to a file!\n");
+    CloseHandle(fileHandle);
+    return false;
+  }
+
+  if (bytesToWrite != bytesWritten)
+  {
+    OutputDebugStringA("Bytes to write was not equal to bytes written!\n");
+    CloseHandle(fileHandle);
+    return false;
+  }
+
+  CloseHandle(fileHandle);
+  return true;
 }
 
 struct Win32BackBuffer
