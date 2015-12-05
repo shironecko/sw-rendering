@@ -61,6 +61,8 @@ u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
 
 bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite)
 {
+  // TODO: handle directory creation
+
   HANDLE fileHandle = CreateFile(
     path,
     GENERIC_WRITE,
@@ -288,6 +290,8 @@ int CALLBACK WinMain(
   assert(gameMemory);
 
   //*****MISC SETUP*****//
+  Win32SetupRenderingBuffers(g_platformData.windowWidth, g_platformData.windowHeight);
+
   HDC windowDC = GetDC(window);
   MSG message {};
   bool keys[256] {};

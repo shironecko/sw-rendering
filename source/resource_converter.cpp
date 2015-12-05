@@ -92,18 +92,6 @@ u32 ParseVector3(char* inText, Vector4* outVector)
   return text - inText;
 }
 
-struct Mesh
-{
-  Vector4* vertices;
-  u32 verticesCount;
-  Vector2* uvs;
-  u32 uvsCount;
-  Vector4* normales;
-  u32 normalesCount;
-  MeshFace* faces;
-  u32 facesCount;
-};
-
 void ParseMeshObj(
     char* text,
     u32 textLength,
