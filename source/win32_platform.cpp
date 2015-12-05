@@ -294,7 +294,7 @@ int CALLBACK WinMain(
 
   HDC windowDC = GetDC(window);
   MSG message {};
-  bool keys[256] {};
+  Input input {};
 
   LARGE_INTEGER lastFrameTime;
   LARGE_INTEGER queryFrequency;
@@ -317,20 +317,24 @@ int CALLBACK WinMain(
     /* _snprintf_s(windowTitle, 256, 255, "Software Renderer \t %.2fms per frame", deltaTime * 1000.0f); */
     /* SetWindowText(window, windowTitle); */
 
-
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
       TranslateMessage(&message);
 
       if (message.message == WM_KEYDOWN)
-        keys[message.wParam] = true;
+        input.keyboard[message.wParam] = true;
       else if (message.message == WM_KEYUP)
-        keys[message.wParam] = false;
+        input.keyboard[message.wParam] = false;
 
       DispatchMessage(&message);
     }
 
-    GameUpdate(deltaTime, gameMemory, gameMemorySize, &g_platformData.renderBuffer);
+    GameUpdate(
+        deltaTime,
+        gameMemory,
+        gameMemorySize,
+        &g_platformData.renderBuffer,
+        &input);
 
     Win32PresentToWindow(
       windowDC,

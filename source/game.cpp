@@ -1,10 +1,6 @@
 #include "math3d.cpp"
 #include "renderer.cpp"
-
-struct Input
-{
-  bool keyboard[256];
-};
+#include "game_common.cpp"
 
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 {
@@ -32,8 +28,23 @@ local bool GameUpdate(
     float deltaTime,
     void* gameMemory,
     u32 gameMemorySize,
-    RenderTarget* renderTarget)
+    RenderTarget* renderTarget,
+    Input* input)
 {
+  const float camZoomSpeed = 1.0f;
+  const float camRotationSpeed = 2.0f;
+  local_persist float camDistance = 4.0f;
+  local_persist float camRotation = 0;
+
+  if (input->keyboard['W'])
+    camDistance -= camZoomSpeed * deltaTime;
+  if (input->keyboard['S'])
+    camDistance += camZoomSpeed * deltaTime;
+  if (input->keyboard['A'])
+    camRotation -= camRotationSpeed * deltaTime;
+  if (input->keyboard['D'])
+    camRotation += camRotationSpeed * deltaTime;
+
   Mesh* mesh = (Mesh*)gameMemory;
   Render(
       renderTarget,
@@ -42,8 +53,8 @@ local bool GameUpdate(
       nullptr,
       0,
       0,
-      4.0f,
-      0,
+      camDistance,
+      camRotation,
       { 0, 0, 0, 0});
 
   return true;

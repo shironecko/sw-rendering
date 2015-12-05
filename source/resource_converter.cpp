@@ -1,5 +1,6 @@
 #include "math3d.cpp"
 #include "renderer.cpp"
+#include "game_common.cpp"
 
 u32 SkipLine(char* inText)
 {
@@ -269,7 +270,8 @@ local bool GameUpdate(
     float /* deltaTime */,
     void* /* gameMemory */,
     u32 /* gameMemorySize */,
-    RenderTarget* /* renderTarget */)
+    RenderTarget* /* renderTarget */,
+    Input* /* input */)
 {
   // NOTE: converter does all stuff on GameInitialize(...)
   return false;
