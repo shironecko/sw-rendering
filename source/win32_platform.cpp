@@ -9,6 +9,7 @@
 
 #include "types.cpp"
 
+u64 PlatformGetFileSize(char* path);
 u32 PlatformLoadFile(char* path, void* memory, u32 memorySize);
 bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
 
@@ -21,6 +22,40 @@ bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
 #endif
 
 #include <windows.h>
+
+u64 PlatformGetFileSize(char* path)
+{
+  HANDLE fileHandle = CreateFile(
+    path,
+    FILE_READ_ATTRIBUTES,
+    FILE_SHARE_READ,
+    nullptr,
+    OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
+
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to open a file!\n");
+    return 0;
+  }
+
+  LARGE_INTEGER size;
+  BOOL getFileSizeResult = GetFileSizeEx(
+    fileHandle,
+    &size
+  );
+
+  if (!getFileSizeResult)
+  {
+    OutputDebugStringA("Was not able to get a file size!\n");
+    return 0;
+  }
+
+  CloseHandle(fileHandle);
+  return u64(size.QuadPart);
+}
 
 u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
 {
