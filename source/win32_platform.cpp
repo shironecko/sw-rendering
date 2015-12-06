@@ -364,12 +364,14 @@ int CALLBACK WinMain(
       DispatchMessage(&message);
     }
 
-    GameUpdate(
+    bool gameWantsToContinue = GameUpdate(
         deltaTime,
         gameMemory,
         gameMemorySize,
         &g_platformData.renderBuffer,
         &input);
+
+    g_platformData.shouldRun &= gameWantsToContinue;
 
     Win32PresentToWindow(
       windowDC,
