@@ -1,8 +1,6 @@
 #define _HAS_EXCEPTIONS 0
 #define _STATIC_CPPLIB
 
-#include <windows.h>
-
 // TODO: sort this out
 //#include <assert.h>
 //#include <stdio.h>
@@ -21,6 +19,8 @@ bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
 #else
 #error "You did not specified project type!"
 #endif
+
+#include <windows.h>
 
 u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
 {

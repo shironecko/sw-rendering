@@ -48,14 +48,15 @@ local bool GameUpdate(
   Mesh* mesh = (Mesh*)gameMemory;
   Render(
       renderTarget,
-      RenderMode::Wireframe,
+      RenderMode::Shaded,
+      /* RenderMode::Wireframe, */
       mesh,
       nullptr,
       0,
       0,
       camDistance,
       camRotation,
-      { 0, 0, 0, 0});
+      (Vector4 { 1.0f, -1.0f, 0, 0}).Normalized3());
 
   return true;
 }
