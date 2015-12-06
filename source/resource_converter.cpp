@@ -78,12 +78,29 @@ u32 ParseFloat(char* inText, float* outFloat)
   return text - inText;
 }
 
-void MemoryCopy(u8* destination, u8* source, u32 bytesToCopy)
+void MemoryCopy(void* destination, void* source, u32 bytesToCopy)
 {
+  u8* destinationBytes = (u8*)destination;
+  u8* sourceBytes = (u8*)source;
+
   for (u32 i = 0; i < bytesToCopy; ++i)
   {
-    destination[i] = source[i];
+    destinationBytes[i] = sourceBytes[i];
   }
+}
+
+bool MemoryEqual(void* memoryA, void* memoryB, u32 bytesToCompare)
+{
+  u8* memoryABytes = (u8*)memoryA;
+  u8* memoryBBytes = (u8*)memoryB;
+
+  for (u32 i = 0; i < bytesToCompare; ++i)
+  {
+    if (memoryABytes[i] != memoryBBytes[i])
+      return false;
+  }
+
+  return true;
 }
 
 u32 ParseVector3(char* inText, Vector4* outVector)
@@ -99,6 +116,20 @@ u32 ParseVector3(char* inText, Vector4* outVector)
 
   *outVector = result;
   return text - inText;
+}
+
+bool StringBeginsWith(char* string, char* prefix)
+{
+  while (*string && *prefix)
+  {
+    if (*string != *prefix)
+      return false;
+
+    ++string;
+    ++prefix;
+  }
+
+  return true;
 }
 
 /* ParseMeshObj
@@ -133,6 +164,68 @@ u32 ParseMeshObj(
   MeshFace* faces = (MeshFace*)temporaryStorage;
   MeshFace* facesOriginal = faces;
 
+  for (char* text = objText; u32(text - objText) < fileSize; text += SkipLine(text))
+  {
+    if (StringBeginsWith(text, "v "))
+    {
+      // vertex
+      Vector4 vertice;
+      ParseVector3(text + 2, &vertice);
+      vertice.w = 1.0f;
+
+      *vertices = vertice;
+      ++vertices;
+    }
+    else if (StringBeginsWith(text, "vt "))
+    {
+      // uv
+      Vector2 uv;
+      char* localText = text + 3;
+      for (u32 i = 0; i < 2; ++i)
+      {
+        localText += ParseFloat(localText, &uv.components[i]) + 1;
+      }
+
+      *uvs = uv;
+      ++uvs;
+    }
+    else if (StringBeginsWith(text, "vn "))
+    {
+      // normal
+      Vector4 normale;
+      ParseVector3(text + 3, &normale);
+      normale.w = 0.0f;
+
+      *normales = normale;
+      ++normales;
+    }
+    else if (StringBeginsWith(text, "f "))
+    {
+      // face
+      MeshFace face;
+      char* localText = text + 2;
+      for (u32 i = 0; i < 3; ++i)
+      {
+        localText += ParseUInteger(localText, &face.vertices[i]) + 1;
+        --face.vertices[i];
+        
+        localText += ParseUInteger(localText, &face.uvs[i]) + 1;
+        --face.uvs[i];
+
+        localText += ParseUInteger(localText, &face.normals[i]) + 1;
+        --face.normals[i];
+      }
+
+      *faces = face;
+      ++faces;
+    }
+  }
+
+  vertices = verticesOriginal;
+  uvs = uvsOriginal;
+  normales = normalesOriginal;
+  faces = facesOriginal;
+
   for (u32 i = 0; i < fileSize; )
   {
     switch (objText[i])
@@ -148,7 +241,9 @@ u32 ParseMeshObj(
             i += ParseVector3(objText + i, &vertice);
             vertice.w = 1.0f;
 
-            *vertices = vertice;
+            if (!MemoryEqual(vertices, &vertice, sizeof(Vector4)))
+              __nop();
+
             ++vertices;
           } break;
           case 't':
@@ -162,7 +257,9 @@ u32 ParseMeshObj(
               ++i;
             }
 
-            *uvs = uv;
+            if (!MemoryEqual(uvs, &uv, sizeof(Vector2)))
+              __nop();
+
             ++uvs;
           } break;
           case 'n':
@@ -170,9 +267,11 @@ u32 ParseMeshObj(
             i += 3;
             Vector4 normale;
             i += ParseVector3(objText + i, &normale);
-            normale.w = 1.0f;
+            normale.w = 0.0f;
 
-            *normales = normale;
+            if (!MemoryEqual(normales, &normale, sizeof(Vector4)))
+              __nop();
+
             ++normales;
           } break;
           default:
@@ -198,7 +297,9 @@ u32 ParseMeshObj(
           ++i;
         }
 
-        *faces = face;
+        if (!MemoryEqual(faces, &face, sizeof(MeshFace)))
+          __nop();
+
         ++faces;
       } break;
       default:
@@ -216,25 +317,25 @@ u32 ParseMeshObj(
   mesh->vertices = (Vector4*)memory;
   mesh->verticesCount = vertices - verticesOriginal;
   u32 verticesBytes = mesh->verticesCount * sizeof(Vector4);
-  MemoryCopy((u8*)mesh->vertices, (u8*)verticesOriginal, verticesBytes);
+  MemoryCopy(mesh->vertices, verticesOriginal, verticesBytes);
   memory += verticesBytes;
 
   mesh->uvs = (Vector2*)memory;
   mesh->uvsCount = uvs - uvsOriginal;
   u32 uvsBytes = mesh->uvsCount * sizeof(Vector2);
-  MemoryCopy((u8*)mesh->uvs, (u8*)uvsOriginal, uvsBytes);
+  MemoryCopy(mesh->uvs, uvsOriginal, uvsBytes);
   memory += uvsBytes;
 
   mesh->normales = (Vector4*)memory;
   mesh->normalesCount = normales - normalesOriginal;
   u32 normalesBytes = mesh->normalesCount * sizeof(Vector4);
-  MemoryCopy((u8*)mesh->normales, (u8*)normalesOriginal, normalesBytes);
+  MemoryCopy(mesh->normales, normalesOriginal, normalesBytes);
   memory += normalesBytes;
 
   mesh->faces = (MeshFace*)memory;
   mesh->facesCount = faces - facesOriginal;
   u32 facesBytes = mesh->facesCount * sizeof(MeshFace);
-  MemoryCopy((u8*)mesh->faces, (u8*)facesOriginal, facesBytes);
+  MemoryCopy(mesh->faces, facesOriginal, facesBytes);
   memory += facesBytes;
 
   return memory - memoryOriginal;
@@ -243,16 +344,19 @@ u32 ParseMeshObj(
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 {
   u8* memory = (u8*)gameMemory;
-  Mesh* mesh = (Mesh*)memory;
-  u32 meshSize = ParseMeshObj(
-      "../data/source/meshes/creeper.obj",
-      memory,
-      gameMemorySize);
 
-  PlatformWriteFile(
-      "../data/cooked/meshes/creeper.mesh",
-      mesh,
-      meshSize);
+  {
+    Mesh* mesh = (Mesh*)memory;
+    u32 meshSize = ParseMeshObj(
+        "../data/source/meshes/creeper.obj",
+        memory,
+        gameMemorySize);
+
+    PlatformWriteFile(
+        "../data/cooked/meshes/creeper.mesh",
+        mesh,
+        meshSize);
+  }
 }
 
 local bool GameUpdate(
