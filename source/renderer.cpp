@@ -327,14 +327,14 @@ void Render(
 
             Color32 texel = { 255, 255, 255, 255 };
 
-            /* if (renderMode & RenderMode::Textured) */
-            /* { */
-            /*   float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u; */
-            /*   float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u; */
-            /*   tu *= colorTextureWidth; */
-            /*   tv *= colorTextureHeight; */
-            /*   texel = colorTexture[u32(tv) * colorTextureWidth + u32(tu)]; */
-            /* } */
+            if (renderMode & RenderMode::Textured)
+            {
+              float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
+              float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
+              tu *= colorTexture->width;
+              tv *= colorTexture->height;
+              texel = colorTexture->GetTexel(u32(tu), u32(tv));
+            }
 
             bitmap->SetPixel(x, y, Color 
             { 

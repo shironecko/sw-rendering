@@ -286,10 +286,10 @@ struct BitmapColor32
 
     struct
     {
+      u8 padding;
       u8 b;
       u8 g;
       u8 r;
-      u8 padding;
     };
   };
 };

@@ -72,7 +72,7 @@ local bool GameUpdate(
   GameData* gameData = (GameData*)gameMemory;
   Render(
       renderTarget,
-      RenderMode::Shaded,
+      RenderMode::Textured | RenderMode::Shaded,
       /* RenderMode::Wireframe, */
       gameData->creeperMesh,
       gameData->creeperColorTex,
