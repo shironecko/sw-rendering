@@ -44,6 +44,8 @@ local bool GameUpdate(
     camRotation -= camRotationSpeed * deltaTime;
   if (input->keyboard['D'])
     camRotation += camRotationSpeed * deltaTime;
+  if (input->keyboard['Q'])
+    return false;
 
   Mesh* mesh = (Mesh*)gameMemory;
   Render(
