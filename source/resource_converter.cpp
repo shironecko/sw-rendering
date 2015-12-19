@@ -146,7 +146,7 @@ u32 ParseMeshObj(
   u8* temporaryStorage = memory + memorySize;
   temporaryStorage -= fileSize;
   char* objText = (char*)temporaryStorage;
-  PlatformLoadFile(pathToObj, (void*)objText, fileSize);
+  PlatformLoadFile(pathToObj, objText, fileSize);
 
   temporaryStorage -= fileSize;
   Vector4* vertices = (Vector4*)temporaryStorage;
@@ -252,6 +252,83 @@ u32 ParseMeshObj(
   return memory - memoryOriginal;
 }
 
+#pragma pack(push, 1)
+struct BitmapFileHeader 
+{
+  u16 type;
+  u32 size;
+  u16 reserved1;
+  u16 reserved2;
+  u32 offBytes;
+};
+
+struct BitmapInfoHeader 
+{
+  u32 size;
+  i32 width;
+  i32 height;
+  u16 planes;
+  u16 bitCount;
+  u32 compression;
+  u32 sizeImage;
+  i32 xPelsPerMeter;
+  i32 yPelsPerMeter;
+  u32 clrUsed;
+  u32 clrImportant;
+};
+#pragma pack(pop)
+
+struct BitmapColor32
+{
+  union
+  {
+    u8 components[4];
+
+    struct
+    {
+      u8 b;
+      u8 g;
+      u8 r;
+      u8 padding;
+    };
+  };
+};
+
+u32 ParseBitmap(
+    char* pathToBmp,
+    u8* memory,
+    u32 memorySize)
+{
+  u32 fileSize = (u32)PlatformGetFileSize(pathToBmp);
+  u8* rawBitmap = memory + memorySize;
+  rawBitmap -= fileSize;
+  PlatformLoadFile(pathToBmp, rawBitmap, fileSize);
+
+  BitmapFileHeader* fileHeader = (BitmapFileHeader*)rawBitmap;
+  BitmapInfoHeader* infoHeader = (BitmapInfoHeader*)(rawBitmap + sizeof(BitmapFileHeader));
+
+  u16 bitmapFileType = (u16('M') << 8) | 'B';
+  assert(fileHeader->type == bitmapFileType);
+  assert(infoHeader->bitCount == 32);
+  assert(infoHeader->compression == 0 || infoHeader->compression == 3);
+
+  infoHeader->height = abs(infoHeader->height);
+
+  Texture* texture = (Texture*)memory;
+  texture->width = infoHeader->width;
+  texture->height = infoHeader->height;
+
+  BitmapColor32* rawPixels = (BitmapColor32*)(rawBitmap + fileHeader->offBytes);
+  Color32* pixels = (Color32*)(memory + sizeof(Texture));
+  for (u32 i = 0, n = texture->width * texture->height; i < n; ++i)
+  {
+    BitmapColor32 rawPixel = rawPixels[i];
+    pixels[i] = { rawPixel.r, rawPixel.g, rawPixel.b, 0 };
+  }
+
+  return sizeof(Texture) + sizeof(Color32) * texture->width * texture->height;
+}
+
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 {
   u8* memory = (u8*)gameMemory;
@@ -267,6 +344,19 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
         "../data/cooked/meshes/creeper.mesh",
         mesh,
         meshSize);
+  }
+
+  {
+    Texture* texture = (Texture*)memory;
+    u32 textureSize = ParseBitmap(
+        "../data/source/textures/creeper_color.bmp",
+        memory,
+        gameMemorySize);
+
+    PlatformWriteFile(
+        "../data/cooked/textures/creeper_color.tex",
+        texture,
+        textureSize);
   }
 }
 

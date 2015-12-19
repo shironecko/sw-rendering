@@ -55,6 +55,30 @@ struct Mesh
   u32 facesCount;
 };
 
+struct Texture
+{
+  u32 width;
+  u32 height;
+
+  Color32 GetTexel(u32 x, u32 y)
+  {
+    assert(x < width);
+    assert(y < height);
+
+    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
+    return *(pixels + y * width + x);
+  }
+
+  void SetTexel(u32 x, u32 y, Color32 color)
+  {
+    assert(x < width);
+    assert(y < height);
+
+    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
+    *(pixels + y * width + x) = color;
+  }
+};
+
 namespace RenderMode
 {
   enum
@@ -161,9 +185,7 @@ void Render(
     RenderTarget* target,
     u32 renderMode,
     Mesh* mesh,
-    Color32* colorTexture,
-    u32 colorTextureWidth,
-    u32 colorTextureHeight,
+    Texture* colorTexture,
     float camDistance, float camRotY,
     Vector4 sunlightDirection)
 {
@@ -305,14 +327,14 @@ void Render(
 
             Color32 texel = { 255, 255, 255, 255 };
 
-            if (renderMode & RenderMode::Textured)
-            {
-              float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
-              float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
-              tu *= colorTextureWidth;
-              tv *= colorTextureHeight;
-              texel = colorTexture[u32(tv) * colorTextureWidth + u32(tu)];
-            }
+            /* if (renderMode & RenderMode::Textured) */
+            /* { */
+            /*   float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u; */
+            /*   float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u; */
+            /*   tu *= colorTextureWidth; */
+            /*   tv *= colorTextureHeight; */
+            /*   texel = colorTexture[u32(tv) * colorTextureWidth + u32(tu)]; */
+            /* } */
 
             bitmap->SetPixel(x, y, Color 
             { 
