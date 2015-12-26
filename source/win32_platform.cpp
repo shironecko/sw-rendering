@@ -176,11 +176,11 @@ void Win32SetupRenderingBuffers(u32 width, u32 height)
   g_platformData.backBuffer.memory = (u32*)platformMemory;
   platformMemory += width * height * sizeof(u32);
 
-  Bitmap* bitmap = &g_platformData.renderBuffer.bitmap;
-  bitmap->width = width;
-  bitmap->height = height;
-  bitmap->memory = (Color*)platformMemory;
-  platformMemory += width * height * sizeof(Color);
+  Texture** texture = &g_platformData.renderBuffer.texture;
+  *texture = (Texture*)platformMemory;
+  (*texture)->width = width;
+  (*texture)->height = height;
+  platformMemory += width * height * sizeof(Color32) + sizeof(Texture);
 
   g_platformData.renderBuffer.zBuffer = (float*)platformMemory;
   platformMemory += width * height * sizeof(float);
@@ -195,20 +195,20 @@ void Win32PresentToWindow(
     Win32BackBuffer* backBuffer,
     RenderTarget* renderBuffer)
 {
-  u32 bufferWidth = renderBuffer->bitmap.width;
-  u32 bufferHeight = renderBuffer->bitmap.height;
+  u32 bufferWidth = renderBuffer->texture->width;
+  u32 bufferHeight = renderBuffer->texture->height;
 
   // TODO: think about just allocating back-buffer here, on the stack
   for (u32 y = 0; y < bufferHeight; ++y)
   {
     for (u32 x = 0; x < bufferWidth; ++x)
     {
-      Color bufferColor = renderBuffer->bitmap.GetPixel(x, y);
+      Color32 bufferColor = renderBuffer->texture->GetTexel(x, y);
 
       backBuffer->memory[y * bufferWidth + x] = 
-           u8(bufferColor.b * 255.0f) |
-          (u8(bufferColor.g * 255.0f) << 8) |
-          (u8(bufferColor.r * 255.0f) << 16);
+          u32(bufferColor.b) |
+          u32(bufferColor.g) << 8 |
+          u32(bufferColor.r) << 16;
     }
   }
 
