@@ -70,6 +70,11 @@ local bool GameUpdate(
     return false;
 
   GameData* gameData = (GameData*)gameMemory;
+
+  ClearRenderTarget(
+      renderTarget,
+      { 0, 0, 0, 255 });
+
   Render(
       renderTarget,
       RenderMode::Textured | RenderMode::Shaded,

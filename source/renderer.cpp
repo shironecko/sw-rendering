@@ -141,6 +141,26 @@ struct RenderTarget
   float* zBuffer;
 };
 
+void ClearRenderTarget(
+    RenderTarget* target,
+    Color32 clearColor)
+{
+  Texture* targetTexture = target->texture;
+  float* zBuffer = target->zBuffer;
+
+  for (u32 y = 0; y < targetTexture->height; ++y)
+  {
+    for (u32 x = 0; x < targetTexture->width; ++x)
+    {
+      targetTexture->SetTexel(x, y, clearColor);
+    }
+  }
+
+  float infinity = 100.0f;
+  for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
+    zBuffer[i] = infinity;
+}
+
 // TODO: sort this out
 void Render(
     RenderTarget* target,
@@ -152,19 +172,6 @@ void Render(
 {
   Texture* targetTexture = target->texture;
   float* zBuffer = target->zBuffer;
-
-  const Color32 clearColor32 { 0, 0, 0, 0};
-  for (u32 y = 0; y < targetTexture->height; ++y)
-  {
-    for (u32 x = 0; x < targetTexture->width; ++x)
-    {
-      targetTexture->SetTexel(x, y, clearColor32);
-    }
-  }
-
-  float infinity = 100.0f;
-  for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
-    zBuffer[i] = infinity;
 
   Matrix4x4 model = Matrix4x4::Identity();
 

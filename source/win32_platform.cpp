@@ -348,9 +348,9 @@ int CALLBACK WinMain(
     lastFrameTime = currentFrameTime;
 
     // TODO: sort this out
-    /* char windowTitle[256]; */
-    /* _snprintf_s(windowTitle, 256, 255, "Software Renderer \t %.2fms per frame", deltaTime * 1000.0f); */
-    /* SetWindowText(window, windowTitle); */
+    char windowTitle[256];
+    wsprintf(windowTitle, "Software Renderer \t %ums per frame", u32(deltaTime * 1000.0f));
+    SetWindowText(window, windowTitle);
 
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
