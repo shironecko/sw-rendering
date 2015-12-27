@@ -4,22 +4,6 @@
 /* #include <algorithm> */
 /* #include <limits> */
 
-struct Color
-{
-  union
-  {
-    float components[4];
-
-    struct
-    {
-      float r;
-      float g;
-      float b;
-      float a;
-    };
-  };
-};
-
 struct Color32
 {
   union
@@ -90,29 +74,6 @@ namespace RenderMode
   };
 }
 
-struct Bitmap
-{
-  Color GetPixel(u32 x, u32 y)
-  {
-    assert(x < width);
-    assert(y < height);
-
-    return memory[y * width + x];
-  }
-
-  void SetPixel(u32 x, u32 y, Color value)
-  {
-    assert(x < width);
-    assert(y < height);
-
-    memory[y * width + x] = value;
-  }
-
-  u32 width;
-  u32 height;
-  Color* memory;
-};
-
 // TODO: sort this out
 void my_swap(i32& a, i32& b)
 {
@@ -138,7 +99,7 @@ T my_max(T a, T b)
   return a > b ? a : b;
 }
 
-void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap* bitmap)
+void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color32 color, Texture* texture)
 {
   if (my_abs(x2 - x1) > my_abs(y2 - y1)) // horizontal line
   {
@@ -152,7 +113,7 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap* bitmap)
     float step = float(y2 - y1) / float(x2 - x1);
     for (i32 x = x1; x <= x2; ++x)
     {
-      bitmap->SetPixel(x, u32(y), color);
+      texture->SetTexel(x, u32(y), color);
       y += step;
     }
   }
@@ -168,7 +129,7 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap* bitmap)
     float step = float(x2 - x1) / float(y2 - y1);
     for (i32 y = y1; y <= y2; ++y)
     {
-      bitmap->SetPixel(u32(x), y, color);
+      texture->SetTexel(u32(x), y, color);
       x += step;
     }
   }
@@ -176,9 +137,29 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap* bitmap)
 
 struct RenderTarget
 {
-  Bitmap bitmap;
+  Texture* texture;
   float* zBuffer;
 };
+
+void ClearRenderTarget(
+    RenderTarget* target,
+    Color32 clearColor)
+{
+  Texture* targetTexture = target->texture;
+  float* zBuffer = target->zBuffer;
+
+  for (u32 y = 0; y < targetTexture->height; ++y)
+  {
+    for (u32 x = 0; x < targetTexture->width; ++x)
+    {
+      targetTexture->SetTexel(x, y, clearColor);
+    }
+  }
+
+  float infinity = 100.0f;
+  for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
+    zBuffer[i] = infinity;
+}
 
 // TODO: sort this out
 void Render(
@@ -189,21 +170,8 @@ void Render(
     float camDistance, float camRotY,
     Vector4 sunlightDirection)
 {
-  Bitmap* bitmap = &target->bitmap;
+  Texture* targetTexture = target->texture;
   float* zBuffer = target->zBuffer;
-
-  const Color clearColor { 0, 0, 0, 0};
-  for (u32 y = 0; y < bitmap->height; ++y)
-  {
-    for (u32 x = 0; x < bitmap->width; ++x)
-    {
-      bitmap->SetPixel(x, y, clearColor);
-    }
-  }
-
-  float infinity = 100.0f;
-  for (u32 i = 0, n = bitmap->width * bitmap->height; i < n; ++i)
-    zBuffer[i] = infinity;
 
   Matrix4x4 model = Matrix4x4::Identity();
 
@@ -216,11 +184,11 @@ void Render(
 
   Matrix4x4 projection = Matrix4x4::Projection(
       90.0f, 
-      float(bitmap->width) / float(bitmap->height),
+      float(targetTexture->width) / float(targetTexture->height),
       0.1f,
       1000.0f);
 
-  Matrix4x4 screen = Matrix4x4::ScreenSpace( bitmap->width, bitmap->height); 
+  Matrix4x4 screen = Matrix4x4::ScreenSpace( targetTexture->width, targetTexture->height); 
   Matrix4x4 transform = projection * view * model;
 
   for (u32 i = 0; i < mesh->facesCount; ++i)
@@ -310,7 +278,7 @@ void Render(
           if (!(v >= -0.001 && w >= -0.001 && u >= -0.001))
             continue;
 
-          u32 zIndex = y * bitmap->width + x;
+          u32 zIndex = y * targetTexture->width + x;
           float z = verts[1].z * v + verts[2].z * w + verts[0].z * u;
           if (zBuffer[zIndex] > z)
           {
@@ -336,12 +304,12 @@ void Render(
               texel = colorTexture->GetTexel(u32(tu), u32(tv));
             }
 
-            bitmap->SetPixel(x, y, Color 
+            targetTexture->SetTexel(x, y, Color32 
             { 
-              float(texel.r) / 255.0f * l,
-              float(texel.g) / 255.0f * l,
-              float(texel.b) / 255.0f * l,
-              1.0f
+              u8(texel.r * l),
+              u8(texel.g * l),
+              u8(texel.b * l),
+              255
             });
 
             zBuffer[zIndex] = z;
@@ -352,11 +320,11 @@ void Render(
 
     if (renderMode & RenderMode::Wireframe)
     {
-      const Color modelColor { 1.0f, 1.0f, 1.0f, 1.0f };
+      const Color32 modelColor{ 255, 255, 255, 255 };
 
-      DrawLine(x1, y1, x2, y2, modelColor, bitmap);
-      DrawLine(x2, y2, x3, y3, modelColor, bitmap);
-      DrawLine(x3, y3, x1, y1, modelColor, bitmap);
+      DrawLine(x1, y1, x2, y2, modelColor, targetTexture);
+      DrawLine(x2, y2, x3, y3, modelColor, targetTexture);
+      DrawLine(x3, y3, x1, y1, modelColor, targetTexture);
     }
   }
 }
