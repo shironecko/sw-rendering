@@ -1,43 +1,168 @@
 #define _HAS_EXCEPTIONS 0
 #define _STATIC_CPPLIB
 
+// TODO: sort this out
+//#include <assert.h>
+//#include <stdio.h>
+
+#define assert(x) __nop()
+
+#include "types.cpp"
+
+u64 PlatformGetFileSize(char* path);
+u32 PlatformLoadFile(char* path, void* memory, u32 memorySize);
+bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
+
+#ifdef GAME_PROJECT
+#include "game.cpp"
+#elif defined(RESOURCE_CONVERTER_PROJECT)
+#include "resource_converter.cpp"
+#else
+#error "You did not specified project type!"
+#endif
+
 #include <windows.h>
-#include <cassert>
-#include <vector>
-#include <array>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <cstdio>
 
-#include "types.h"
-#include "math3d.cpp"
-#include "renderer.cpp"
-
-global bool       g_shouldRun = true;
-global u32        g_windowWidth;
-global u32        g_windowHeight;
-global BITMAPINFO g_backBufferInfo;
-global u32*       g_backBufferMemory;
-global Bitmap*    g_renderBuffer;
-global std::vector<float> g_zBuffer;
-
-u8 CompressColorComponent(float component)
+u64 PlatformGetFileSize(char* path)
 {
-  return u8(component * 255.0f);
+  HANDLE fileHandle = CreateFile(
+    path,
+    FILE_READ_ATTRIBUTES,
+    FILE_SHARE_READ,
+    nullptr,
+    OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
+
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to open a file!\n");
+    return 0;
+  }
+
+  LARGE_INTEGER size;
+  BOOL getFileSizeResult = GetFileSizeEx(
+    fileHandle,
+    &size
+  );
+
+  if (!getFileSizeResult)
+  {
+    OutputDebugStringA("Was not able to get a file size!\n");
+    return 0;
+  }
+
+  CloseHandle(fileHandle);
+  return u64(size.QuadPart);
 }
 
-
-BITMAPINFO ResizeRenderingBuffers(u32 width, u32 height)
+u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
 {
-  delete[] g_backBufferMemory;
-  g_backBufferMemory = new u32[width * height];
+  HANDLE fileHandle = CreateFile(
+    path,
+    GENERIC_READ,
+    FILE_SHARE_READ,
+    nullptr,
+    OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
 
-  delete g_renderBuffer;
-  g_renderBuffer = new Bitmap(width, height);
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to open a file!\n");
+    return 0;
+  }
 
-  g_zBuffer.resize(width * height);
-  g_zBuffer.shrink_to_fit();
+  DWORD bytesRead;
+  BOOL readResult = ReadFile(
+    fileHandle,
+    memory,
+    memorySize,
+    &bytesRead,
+    nullptr
+  );
+
+  if (!readResult)
+  {
+    OutputDebugStringA("Was not able to read from a file!\n");
+    return 0;
+  }
+
+  CloseHandle(fileHandle);
+  return bytesRead;
+}
+
+bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite)
+{
+  // TODO: handle directory creation
+
+  HANDLE fileHandle = CreateFile(
+    path,
+    GENERIC_WRITE,
+    0,
+    nullptr,
+    CREATE_ALWAYS,
+    FILE_ATTRIBUTE_NORMAL,
+    0
+  );
+
+  if (fileHandle == INVALID_HANDLE_VALUE)
+  {
+    OutputDebugStringA("Was not able to create or owerwrite a file!\n");
+    return false;
+  }
+
+  DWORD bytesWritten;
+  BOOL writeResult = WriteFile(
+    fileHandle,
+    memory,
+    bytesToWrite,
+    &bytesWritten,
+    nullptr
+  );
+
+  if (!writeResult)
+  {
+    OutputDebugStringA("Was not able to write to a file!\n");
+    CloseHandle(fileHandle);
+    return false;
+  }
+
+  if (bytesToWrite != bytesWritten)
+  {
+    OutputDebugStringA("Bytes to write was not equal to bytes written!\n");
+    CloseHandle(fileHandle);
+    return false;
+  }
+
+  CloseHandle(fileHandle);
+  return true;
+}
+
+struct Win32BackBuffer
+{
+  BITMAPINFO info;
+  u32* memory;
+};
+
+struct
+{
+  bool            shouldRun           = true;
+  u32             windowWidth         = 640;
+  u32             windowHeight        = 480;
+
+  void*           memory              = nullptr;
+  u32             memorySize          = 0;
+  RenderTarget    renderBuffer        {};
+  Win32BackBuffer backBuffer          {};
+
+} g_platformData;
+
+void Win32SetupRenderingBuffers(u32 width, u32 height)
+{
+  u8* platformMemory = (u8*)g_platformData.memory;
 
   BITMAPINFO info {};
   info.bmiHeader.biSize = sizeof(info.bmiHeader);
@@ -47,10 +172,63 @@ BITMAPINFO ResizeRenderingBuffers(u32 width, u32 height)
   info.bmiHeader.biBitCount = 32;
   info.bmiHeader.biCompression = BI_RGB;
 
-  return info;
+  g_platformData.backBuffer.info = info;
+  g_platformData.backBuffer.memory = (u32*)platformMemory;
+  platformMemory += width * height * sizeof(u32);
+
+  Texture** texture = &g_platformData.renderBuffer.texture;
+  *texture = (Texture*)platformMemory;
+  (*texture)->width = width;
+  (*texture)->height = height;
+  platformMemory += width * height * sizeof(Color32) + sizeof(Texture);
+
+  g_platformData.renderBuffer.zBuffer = (float*)platformMemory;
+  platformMemory += width * height * sizeof(float);
+
+  assert(u32(platformMemory - (u8*)g_platformData.memory) <= g_platformData.memorySize);
 }
 
-LRESULT CALLBACK WindowProc(
+void Win32PresentToWindow(
+    HDC windowDC,
+    u32 windowWidth,
+    u32 windowHeight,
+    Win32BackBuffer* backBuffer,
+    RenderTarget* renderBuffer)
+{
+  u32 bufferWidth = renderBuffer->texture->width;
+  u32 bufferHeight = renderBuffer->texture->height;
+
+  // TODO: think about just allocating back-buffer here, on the stack
+  for (u32 y = 0; y < bufferHeight; ++y)
+  {
+    for (u32 x = 0; x < bufferWidth; ++x)
+    {
+      Color32 bufferColor = renderBuffer->texture->GetTexel(x, y);
+
+      backBuffer->memory[y * bufferWidth + x] = 
+          u32(bufferColor.b) |
+          u32(bufferColor.g) << 8 |
+          u32(bufferColor.r) << 16;
+    }
+  }
+
+  StretchDIBits(
+    windowDC,
+    0,
+    0,
+    windowWidth,
+    windowHeight,
+    0,
+    0,
+    backBuffer->info.bmiHeader.biWidth,
+    backBuffer->info.bmiHeader.biHeight,
+    backBuffer->memory,
+    &backBuffer->info,
+    DIB_RGB_COLORS,
+    SRCCOPY);
+}
+
+LRESULT CALLBACK Win32WindowProc(
   HWND   window,
   UINT   message,
   WPARAM wParam,
@@ -60,41 +238,32 @@ LRESULT CALLBACK WindowProc(
   {
     case WM_SIZE:
     {
-      g_windowWidth = LOWORD(lParam);
-      g_windowHeight = HIWORD(lParam);
+      g_platformData.windowWidth = LOWORD(lParam);
+      g_platformData.windowHeight = HIWORD(lParam);
     } break;
     case WM_EXITSIZEMOVE:
     {
-      if (g_windowWidth != g_renderBuffer->Width() || g_windowHeight != g_renderBuffer->Height())
-        g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
-        
+      // this is basically free with manual memory management
+      Win32SetupRenderingBuffers(g_platformData.windowWidth, g_platformData.windowHeight);
     } break;
     case WM_PAINT:
     {
       PAINTSTRUCT ps;
       HDC windowDC = BeginPaint(window, &ps);
 
-      StretchDIBits(
+      Win32PresentToWindow(
         windowDC,
-        0,
-        0,
-        g_windowWidth,
-        g_windowHeight,
-        0,
-        0,
-        g_backBufferInfo.bmiHeader.biWidth,
-        g_backBufferInfo.bmiHeader.biHeight,
-        g_backBufferMemory,
-        &g_backBufferInfo,
-        DIB_RGB_COLORS,
-        SRCCOPY);
-      
+        g_platformData.windowWidth,
+        g_platformData.windowHeight,
+        &g_platformData.backBuffer,
+        &g_platformData.renderBuffer);
+
       EndPaint(window, &ps);
     } break;
     case WM_CLOSE:
     case WM_DESTROY:
     {
-      g_shouldRun = false;
+      g_platformData.shouldRun = false;
     } break;
     default:
     {
@@ -108,17 +277,14 @@ LRESULT CALLBACK WindowProc(
 int CALLBACK WinMain(
   HINSTANCE instance,
   HINSTANCE /* prevInstance */,
-  LPSTR     /* cmdLine */,
+  char*     /* cmdLine */,
   int       /* cmdShow */)
 {
   //*****CREATING A WINDOW*****//
-  g_windowWidth = 1080;
-  g_windowHeight = 1080;
-
   WNDCLASSEX wndClass {};
   wndClass.cbSize = sizeof(wndClass);
   wndClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-  wndClass.lpfnWndProc = WindowProc;
+  wndClass.lpfnWndProc = Win32WindowProc;
   wndClass.hInstance = instance;
   wndClass.lpszClassName = "Software Renderer Window Class Name";
 
@@ -131,173 +297,49 @@ int CALLBACK WinMain(
     WS_OVERLAPPEDWINDOW | WS_VISIBLE,
     CW_USEDEFAULT,
     CW_USEDEFAULT,
-    g_windowWidth,
-    g_windowHeight,
+    g_platformData.windowWidth,
+    g_platformData.windowHeight,
     0,
     0,
     instance,
     nullptr
   );
 
-  g_backBufferInfo = ResizeRenderingBuffers(g_windowWidth, g_windowHeight);
+  //*****ALLOCATING MEMORY*****//
+  g_platformData.memorySize = 128 * Mb;
+  g_platformData.memory = VirtualAlloc(
+    nullptr,
+    g_platformData.memorySize,
+    MEM_RESERVE | MEM_COMMIT,
+    PAGE_READWRITE
+  );
+  assert(g_platformData.memory);
 
-  //*****MODEL LOADING*****//
-  const char* modelPath = "../data/Creeper/creeper.obj";
-  std::vector<Vector4> vertices;
-  std::vector<std::array<float, 2>> uvs;
-  std::vector<Vector4> normales;
-  std::vector<ModelFace> faces;
-
-  {
-    std::fstream file;
-    file.open(modelPath, std::ios_base::in);
-    assert(file.is_open());
-    std::string input;
-
-    while (std::getline(file, input))
-    {
-      std::stringstream stream;
-      stream.str(input);
-      char lineHeader;
-      stream >> lineHeader;
-      switch (lineHeader)
-      {
-        case 'v':
-        {
-          char secondChar;
-          stream.get(secondChar);
-          switch (secondChar)
-          {
-            case ' ':
-            {
-              float x, y, z;
-              stream >> x >> y >> z;
-
-              vertices.push_back(Vector4 { x, y, z, 1.0f });
-            } break;
-            case 't':
-            {
-              float u, v;
-              stream >> u >> v;
-
-              uvs.push_back({{ u, v }});
-            } break;
-            case 'n':
-            {
-              float x, y, z;
-              stream >> x >> y >> z;
-
-              normales.push_back(Vector4 { x, y, z, 0 });
-            } break;
-          }
-        } break;
-        case 'f':
-        {
-          u32 v1, v2, v3;
-          u32 uv1, uv2, uv3;
-          u32 n1, n2, n3;
-
-          stream >> v1;
-          stream.ignore(u32(-1), '/');
-          stream >> uv1;
-          stream.ignore(u32(-1), '/');
-          stream >> n1;
-
-          stream >> v2;
-          stream.ignore(u32(-1), '/');
-          stream >> uv2;
-          stream.ignore(u32(-1), '/');
-          stream >> n2;
-
-          stream >> v3;
-          stream.ignore(u32(-1), '/');
-          stream >> uv3;
-          stream.ignore(u32(-1), '/');
-          stream >> n3;
-
-          ModelFace face
-          {
-            {  v1 - 1,  v2 - 1,  v3 - 1 },
-            { uv1 - 1, uv2 - 1, uv3 - 1 },
-            {  n1 - 1,  n2 - 1,  n3 - 1 }
-          };
-          faces.push_back(face);
-
-          stream.ignore(u32(-1), ' ');
-          u32 v4;
-          if (stream >> v4)
-          {
-            // I don't want to waste time on quads now
-            assert(false);
-            //faces.push_back(ModelFace { { v3 - 1, v4 - 1, v1 - 1 } });
-          }
-        } break;
-      }
-    }
-  }
-
-  //*****LOADING TEXTURE*****//
-  Color32* colorTexture = nullptr;
-  u32 colorTextureWidth = 0;
-  u32 colorTextureHeight = 0;
-  const char* texturePath = "../data/Creeper/color.bmp";
-  {
-    std::fstream texture;
-    texture.open(texturePath, std::ios_base::in | std::ios_base::binary);
-    assert(texture.is_open());
-
-    BITMAPFILEHEADER textureHeader;
-    const u16 bitmapFileType = (u16('M') << 8) | u16('B');
-    texture.read((char*)&textureHeader, sizeof(textureHeader));
-    assert(textureHeader.bfType == bitmapFileType);
-
-    BITMAPINFOHEADER textureInfo;
-    texture.read((char*)&textureInfo, sizeof(textureInfo));
-    assert(textureInfo.biBitCount == 24);
-    assert(textureInfo.biCompression == BI_RGB);
-    colorTextureWidth = textureInfo.biWidth;
-    colorTextureHeight = textureInfo.biHeight;
-    u32 texturePixelsCount = colorTextureWidth * colorTextureHeight;
-    colorTexture = new Color32[texturePixelsCount];
-
-    /* texture.seekg(textureHeader.bfOffBits); */
-    texture.ignore(textureHeader.bfOffBits - sizeof(textureHeader) - sizeof(textureInfo));
-    u32 paddingBytes = 4 - ((3 * colorTextureWidth) % 4);
-    paddingBytes %= 4;
-    for (u32 y = 0; y < colorTextureHeight; ++y)
-    {
-      for (u32 x = 0; x < colorTextureWidth; ++x)
-      {
-        u8 r, g, b;
-        // fuck you, C++ and STL...
-        texture.read((char*)&b, 1);
-        texture.read((char*)&g, 1);
-        texture.read((char*)&r, 1);
-        colorTexture[y * colorTextureWidth + x] = { r, g, b, 0 };
-      }
-
-      if (paddingBytes)
-        texture.ignore(paddingBytes);
-    }
-  }
-
+  u32   gameMemorySize = 512 * Mb;
+  void* gameMemory = VirtualAlloc(
+    nullptr,
+    gameMemorySize,
+    MEM_RESERVE | MEM_COMMIT,
+    PAGE_READWRITE
+  );
+  assert(gameMemory);
 
   //*****MISC SETUP*****//
+  Win32SetupRenderingBuffers(g_platformData.windowWidth, g_platformData.windowHeight);
+
   HDC windowDC = GetDC(window);
   MSG message {};
-  bool keys[256] {};
-  float camDistance = 5.0f;
-  float camMoveSpeed = 2.0f;
-  float camRotation = 0;
-  float camRotationSpeed = 2.0f;
+  Input input {};
 
   LARGE_INTEGER lastFrameTime;
   LARGE_INTEGER queryFrequency;
   QueryPerformanceCounter(&lastFrameTime);
   QueryPerformanceFrequency(&queryFrequency);
 
+  GameInitialize(gameMemory, gameMemorySize);
+
   //*****RENDERING LOOP*****//
-  while (g_shouldRun)
+  while (g_platformData.shouldRun)
   {
     LARGE_INTEGER currentFrameTime;
     QueryPerformanceCounter(&currentFrameTime);
@@ -305,75 +347,38 @@ int CALLBACK WinMain(
     float deltaTime = float(ticksElapsed) / float(queryFrequency.QuadPart);
     lastFrameTime = currentFrameTime;
 
+    // TODO: sort this out
     char windowTitle[256];
-    _snprintf_s(windowTitle, 256, 255, "Software Renderer \t %.2fms per frame", deltaTime * 1000.0f);
+    wsprintf(windowTitle, "Software Renderer \t %ums per frame", u32(deltaTime * 1000.0f));
     SetWindowText(window, windowTitle);
-
 
     while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
     {
       TranslateMessage(&message);
 
       if (message.message == WM_KEYDOWN)
-        keys[message.wParam] = true;
+        input.keyboard[message.wParam] = true;
       else if (message.message == WM_KEYUP)
-        keys[message.wParam] = false;
+        input.keyboard[message.wParam] = false;
 
       DispatchMessage(&message);
     }
 
-    if (keys[VK_DOWN])
-      camDistance += camMoveSpeed * deltaTime;
-    if (keys[VK_UP])
-      camDistance -= camMoveSpeed * deltaTime;
-    if (keys[VK_RIGHT])
-      camRotation += camRotationSpeed * deltaTime;
-    if (keys[VK_LEFT])
-      camRotation -= camRotationSpeed * deltaTime;
-    
-    Vector4 sunlightDirection { 1.0f, 1.0f, 1.0f, 0 };
-    u32 renderMode = RenderMode::Shaded;
-    Render(
-        *g_renderBuffer,
-        g_zBuffer,
-        renderMode,
-        vertices,
-        uvs,
-        normales,
-        faces,
-        colorTexture,
-        colorTextureWidth,
-        colorTextureHeight,
-        camDistance, camRotation,
-        sunlightDirection.Normalized3());
+    bool gameWantsToContinue = GameUpdate(
+        deltaTime,
+        gameMemory,
+        gameMemorySize,
+        &g_platformData.renderBuffer,
+        &input);
 
-    for (u32 y = 0; y < g_renderBuffer->Height(); ++y)
-    {
-      for (u32 x = 0; x < g_renderBuffer->Width(); ++x)
-      {
-        Color& bufferColor = (*g_renderBuffer)(x, y);
+    g_platformData.shouldRun &= gameWantsToContinue;
 
-        g_backBufferMemory[y * g_renderBuffer->Width() + x] = 
-            CompressColorComponent(bufferColor.b) |
-            (CompressColorComponent(bufferColor.g) << 8) |
-            (CompressColorComponent(bufferColor.r) << 16);
-      }
-    }
-
-    StretchDIBits(
+    Win32PresentToWindow(
       windowDC,
-      0,
-      0,
-      g_windowWidth,
-      g_windowHeight,
-      0,
-      0,
-      g_backBufferInfo.bmiHeader.biWidth,
-      g_backBufferInfo.bmiHeader.biHeight,
-      g_backBufferMemory,
-      &g_backBufferInfo,
-      DIB_RGB_COLORS,
-      SRCCOPY);
+      g_platformData.windowWidth,
+      g_platformData.windowHeight,
+      &g_platformData.backBuffer,
+      &g_platformData.renderBuffer);
   }
   
   return 0;

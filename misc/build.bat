@@ -12,7 +12,8 @@ if defined VS140COMNTOOLS         ( set VSTOOLS=VS140COMNTOOLS
 
 call "%%%VSTOOLS%%%vsvars32.bat"
 call "%%%VSTOOLS%%%..\..\VC\bin\cl" ^
-  /nologo /Febuild.exe ..\source\win32_platform.cpp /W4 /wd4201 /MT /Od /Oi /Zi ^
+  /nologo /Febuild.exe ..\source\win32_platform.cpp ^
+  %* /W4 /wd4201 /MT /Od /Oi /Zi ^
   /link /subsystem:windows user32.lib gdi32.lib
 
 popd

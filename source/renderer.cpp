@@ -1,24 +1,8 @@
-#include <vector>
-#include <cassert>
-#include <cstdlib>
-#include <algorithm>
-#include <limits>
-
-struct Color
-{
-  union
-  {
-    float components[4];
-
-    struct
-    {
-      float r;
-      float g;
-      float b;
-      float a;
-    };
-  };
-};
+// TODO: sort this out
+/* #include <array> */
+/* #include <vector> */
+/* #include <algorithm> */
+/* #include <limits> */
 
 struct Color32
 {
@@ -36,11 +20,47 @@ struct Color32
   };
 };
 
-struct ModelFace
+struct MeshFace
 {
   u32 vertices[3];
   u32 uvs[3];
   u32 normals[3];
+};
+
+struct Mesh
+{
+  Vector4* vertices;
+  u32 verticesCount;
+  Vector2* uvs;
+  u32 uvsCount;
+  Vector4* normales;
+  u32 normalesCount;
+  MeshFace* faces;
+  u32 facesCount;
+};
+
+struct Texture
+{
+  u32 width;
+  u32 height;
+
+  Color32 GetTexel(u32 x, u32 y)
+  {
+    assert(x < width);
+    assert(y < height);
+
+    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
+    return *(pixels + y * width + x);
+  }
+
+  void SetTexel(u32 x, u32 y, Color32 color)
+  {
+    assert(x < width);
+    assert(y < height);
+
+    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
+    *(pixels + y * width + x) = color;
+  }
 };
 
 namespace RenderMode
@@ -54,56 +74,46 @@ namespace RenderMode
   };
 }
 
-class Bitmap
+// TODO: sort this out
+void my_swap(i32& a, i32& b)
 {
-public:
-  Bitmap(u32 width, u32 height) :
-    m_width(width),
-    m_height(height)
-  {
-    m_pixels = new Color[width * height];
-  }
+  i32 tmp = a;
+  a = b;
+  b = tmp;
+}
 
-  ~Bitmap()
-  {
-    delete[] m_pixels;
-  }
-
-  Color& operator () (u32 x, u32 y)
-  {
-    assert(x < m_width);
-    assert(y < m_height);
-
-    return m_pixels[y * m_width + x];
-  }
-
-  u32 Width() { return m_width; }
-  u32 Height() { return m_height; }
-
-private:
-  u32 m_width;
-  u32 m_height;
-  Color* m_pixels;
-};
-
-void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
+u32 my_abs(i32 x)
 {
-  using std::abs;
-  using std::swap;
+  return x > 0 ? x : -x;
+}
 
-  if (abs(x2 - x1) > abs(y2 - y1)) // horizontal line
+template<typename T>
+T my_min(T a, T b)
+{
+  return a < b ? a : b;
+}
+
+template<typename T>
+T my_max(T a, T b)
+{
+  return a > b ? a : b;
+}
+
+void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color32 color, Texture* texture)
+{
+  if (my_abs(x2 - x1) > my_abs(y2 - y1)) // horizontal line
   {
     if (x1 > x2)
     {
-      swap(x1, x2);
-      swap(y1, y2);
+      my_swap(x1, x2);
+      my_swap(y1, y2);
     }
 
     float y = float(y1);
     float step = float(y2 - y1) / float(x2 - x1);
     for (i32 x = x1; x <= x2; ++x)
     {
-      bitmap(x, u32(y)) = color;
+      texture->SetTexel(x, u32(y), color);
       y += step;
     }
   }
@@ -111,47 +121,57 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color color, Bitmap& bitmap)
   {
     if (y1 > y2)
     {
-      swap(y1, y2);
-      swap(x1, x2);
+      my_swap(y1, y2);
+      my_swap(x1, x2);
     }
 
     float x = float(x1);
     float step = float(x2 - x1) / float(y2 - y1);
     for (i32 y = y1; y <= y2; ++y)
     {
-      bitmap(u32(x), y) = color;
+      texture->SetTexel(u32(x), y, color);
       x += step;
     }
   }
 }
 
-void Render(
-    Bitmap& bitmap,
-    std::vector<float>& zBuffer,
-    u32 renderMode,
-    std::vector<Vector4>& vertices,
-    std::vector<std::array<float, 2>>& uvs,
-    std::vector<Vector4>& normales,
-    std::vector<ModelFace>& faces,
-    Color32* colorTexture,
-    u32 colorTextureWidth,
-    u32 colorTextureHeight,
-    float camDistance, float camRotY,
-    Vector4 sunlightDirection)
+struct RenderTarget
 {
-  const Color clearColor { 0, 0, 0, 0};
-  for (u32 y = 0; y < bitmap.Height(); ++y)
+  Texture* texture;
+  float* zBuffer;
+};
+
+void ClearRenderTarget(
+    RenderTarget* target,
+    Color32 clearColor)
+{
+  Texture* targetTexture = target->texture;
+  float* zBuffer = target->zBuffer;
+
+  for (u32 y = 0; y < targetTexture->height; ++y)
   {
-    for (u32 x = 0; x < bitmap.Width(); ++x)
+    for (u32 x = 0; x < targetTexture->width; ++x)
     {
-      bitmap(x, y) = clearColor;
+      targetTexture->SetTexel(x, y, clearColor);
     }
   }
 
-  for (u32 i = 0, n = bitmap.Width() * bitmap.Height(); i < n; ++i)
-    zBuffer[i] = std::numeric_limits<float>::infinity();
+  float infinity = 100.0f;
+  for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
+    zBuffer[i] = infinity;
+}
 
-  const Color modelColor { 1.0f, 1.0f, 1.0f, 1.0f };
+// TODO: sort this out
+void Render(
+    RenderTarget* target,
+    u32 renderMode,
+    Mesh* mesh,
+    Texture* colorTexture,
+    float camDistance, float camRotY,
+    Vector4 sunlightDirection)
+{
+  Texture* targetTexture = target->texture;
+  float* zBuffer = target->zBuffer;
 
   Matrix4x4 model = Matrix4x4::Identity();
 
@@ -164,19 +184,20 @@ void Render(
 
   Matrix4x4 projection = Matrix4x4::Projection(
       90.0f, 
-      float(bitmap.Width()) / float(bitmap.Height()),
+      float(targetTexture->width) / float(targetTexture->height),
       0.1f,
       1000.0f);
 
-  Matrix4x4 screen = Matrix4x4::ScreenSpace( bitmap.Width(), bitmap.Height()); 
+  Matrix4x4 screen = Matrix4x4::ScreenSpace( targetTexture->width, targetTexture->height); 
   Matrix4x4 transform = projection * view * model;
 
-  for (auto& face: faces)
+  for (u32 i = 0; i < mesh->facesCount; ++i)
   {
+    MeshFace face = mesh->faces[i];
     Vector4 verts[3];
-    verts[0] = transform * vertices[face.vertices[0]];
-    verts[1] = transform * vertices[face.vertices[1]];
-    verts[2] = transform * vertices[face.vertices[2]];
+    verts[0] = transform * mesh->vertices[face.vertices[0]];
+    verts[1] = transform * mesh->vertices[face.vertices[1]];
+    verts[2] = transform * mesh->vertices[face.vertices[2]];
 
     bool isInsideFrustrum = true;
     for (Vector4& vert: verts)
@@ -205,49 +226,27 @@ void Render(
 
     if (renderMode & (RenderMode::Shaded | RenderMode::Textured))
     {
-      using std::min;
-      using std::max;
-      u32 minX = min(x1, min(x2, x3));
-      u32 minY = min(y1, min(y2, y3));
-      u32 maxX = max(x1, max(x2, x3)) + 1;
-      u32 maxY = max(y1, max(y2, y3)) + 1;
+      u32 minX = my_min(x1, my_min(x2, x3));
+      u32 minY = my_min(y1, my_min(y2, y3));
+      u32 maxX = my_max(x1, my_max(x2, x3)) + 1;
+      u32 maxY = my_max(y1, my_max(y2, y3)) + 1;
 
       Vector4 norms[3];
-      norms[0] = normales[face.normals[0]];
-      norms[1] = normales[face.normals[1]];
-      norms[2] = normales[face.normals[2]];
       float lum[3];
-      lum[0] = Dot3(norms[0], sunlightDirection);
-      lum[1] = Dot3(norms[1], sunlightDirection);
-      lum[2] = Dot3(norms[2], sunlightDirection);
-
-      struct Vector2
+      if (renderMode & RenderMode::Shaded)
       {
-        union
-        {
-          float components[2];
-          struct
-          {
-            float x;
-            float y;
-          };
-        };
+        norms[0] = mesh->normales[face.normals[0]];
+        norms[1] = mesh->normales[face.normals[1]];
+        norms[2] = mesh->normales[face.normals[2]];
+        lum[0] = Dot3(norms[0], sunlightDirection);
+        lum[1] = Dot3(norms[1], sunlightDirection);
+        lum[2] = Dot3(norms[2], sunlightDirection);
+      }
 
-        float Dot(Vector2 other) const
-        {
-          return x * other.x + y * other.y;
-        }
-
-        Vector2 operator - (Vector2 other) const
-        {
-          return Vector2 { x - other.x, y - other.y };
-        }
-      };
-
-      std::array<float, 2> faceUvs[3];
-      faceUvs[0] = uvs[face.uvs[0]];
-      faceUvs[1] = uvs[face.uvs[1]];
-      faceUvs[2] = uvs[face.uvs[2]];
+      Vector2 faceUvs[3];
+      faceUvs[0] = mesh->uvs[face.uvs[0]];
+      faceUvs[1] = mesh->uvs[face.uvs[1]];
+      faceUvs[2] = mesh->uvs[face.uvs[2]];
 
       Vector2 a { float(x1), float(y1) };
       Vector2 b { float(x2), float(y2) };
@@ -279,28 +278,39 @@ void Render(
           if (!(v >= -0.001 && w >= -0.001 && u >= -0.001))
             continue;
 
-          u32 zIndex = y * bitmap.Width() + x;
+          u32 zIndex = y * targetTexture->width + x;
           float z = verts[1].z * v + verts[2].z * w + verts[0].z * u;
           if (zBuffer[zIndex] > z)
           {
-            float l = lum[1] * v + lum[2] * w + lum[0] * u;
-            if (l < 0)
-              l = 0;
-            else if (l > 1.0f)
-              l = 1.0f;
+            float l = 1.0f;
 
-            float tu = faceUvs[1][0] * v + faceUvs[2][0] * w + faceUvs[0][0] * u;
-            float tv = faceUvs[1][1] * v + faceUvs[2][1] * w + faceUvs[0][1] * u;
-            tu *= colorTextureWidth;
-            tv *= colorTextureHeight;
-            Color32 texel = colorTexture[u32(tv) * colorTextureWidth + u32(tu)];
-            bitmap(x, y) = Color 
+            if (renderMode & RenderMode::Shaded)
+            {
+              l = lum[1] * v + lum[2] * w + lum[0] * u;
+              if (l < 0)
+                l = 0;
+              else if (l > 1.0f)
+                l = 1.0f;
+            }
+
+            Color32 texel = { 255, 255, 255, 255 };
+
+            if (renderMode & RenderMode::Textured)
+            {
+              float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
+              float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
+              tu *= colorTexture->width;
+              tv *= colorTexture->height;
+              texel = colorTexture->GetTexel(u32(tu), u32(tv));
+            }
+
+            targetTexture->SetTexel(x, y, Color32 
             { 
-              float(texel.r) / 255.0f * l,
-              float(texel.g) / 255.0f * l,
-              float(texel.b) / 255.0f * l,
-              1.0f
-            };
+              u8(texel.r * l),
+              u8(texel.g * l),
+              u8(texel.b * l),
+              255
+            });
 
             zBuffer[zIndex] = z;
           }
@@ -310,9 +320,11 @@ void Render(
 
     if (renderMode & RenderMode::Wireframe)
     {
-      DrawLine(x1, y1, x2, y2, modelColor, bitmap);
-      DrawLine(x2, y2, x3, y3, modelColor, bitmap);
-      DrawLine(x3, y3, x1, y1, modelColor, bitmap);
+      const Color32 modelColor{ 255, 255, 255, 255 };
+
+      DrawLine(x1, y1, x2, y2, modelColor, targetTexture);
+      DrawLine(x2, y2, x3, y3, modelColor, targetTexture);
+      DrawLine(x3, y3, x1, y1, modelColor, targetTexture);
     }
   }
 }
