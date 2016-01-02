@@ -5,6 +5,11 @@
 
 const float PI = float(3.14159265359);
 
+float abs(float value)
+{
+  return value < 0 ? value * -1.0f : value;
+}
+
 struct Vector2
 {
   union
@@ -189,13 +194,14 @@ struct Matrix4x4
     *this = *this * that;
   }
 
-  Matrix4x4 Inverse() const
-  {
-    Matrix4x4 result = *this;
-    PIII_Inverse_4x4(&result(0, 0));
+  // TODO: sort this out
+  /* Matrix4x4 Inverse() const */
+  /* { */
+  /*   Matrix4x4 result = *this; */
+  /*   PIII_Inverse_4x4(&result(0, 0)); */
 
-    return result;
-  }
+  /*   return result; */
+  /* } */
 
   static Matrix4x4 Identity()
   {
@@ -210,12 +216,13 @@ struct Matrix4x4
 
   static Matrix4x4 RotationY(float angle)
   {
+    // TODO: use intrinsics
     return Matrix4x4
     {
-       cos(angle), 0, sin(angle), 0,
-                0, 1,      0, 0,
-      -sin(angle), 0, cos(angle), 0,
-                0, 0,      0, 1
+       (float)cos(angle), 0, (float)sin(angle), 0,
+                0, 1.0f,      0, 0,
+      (float)-sin(angle), 0, (float)cos(angle), 0,
+                0, 0,      0, 1.0f
     };
   }
 
