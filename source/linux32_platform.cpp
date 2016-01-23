@@ -14,9 +14,13 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
 #error "You did not specified project type!"
 #endif
 
+#include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
+#include<GL/gl.h>
+#include<GL/glx.h>
+#include<GL/glu.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -53,7 +57,7 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite)
 {
   // TODO: handle directory creation
 
-  i32 file = open(path, O_WRONLY | O_CREAT | O_TRUNC);
+  i32 file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
   if (file == -1)
     return false;
 
@@ -80,26 +84,33 @@ void Linux32SetupRenderingBuffers(
   memory += sizeof(float) * width * height;
 }
 
+void DrawAQuad() {
+} 
+
 int main(int argc, char** argv)
 {
   Display* display = XOpenDisplay((char *)0);
-  i32 screen = DefaultScreen(display);
-  u32 black = BlackPixel(display,screen);
-  u32 white = WhitePixel(display, screen);
 
   u32 windowWidth = 640;
   u32 windowHeight = 480;
 
-  Window window = XCreateSimpleWindow(display, DefaultRootWindow(display),0,0, windowWidth, windowHeight, 5, white, black);
+
+  GLint glAttributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+  XVisualInfo* visualInfo = glXChooseVisual(display, 0, glAttributes);
+  Window rootWindow = DefaultRootWindow(display);
+  Colormap colorMap = XCreateColormap(display, rootWindow, visualInfo->visual, AllocNone);
+
+  XSetWindowAttributes setWindowAttributes;
+  setWindowAttributes.colormap = colorMap;
+  setWindowAttributes.event_mask = ExposureMask | KeyPressMask;
+
+  Window window = XCreateWindow(display, rootWindow, 0, 0, 600, 600, 0, visualInfo->depth, InputOutput, visualInfo->visual, CWColormap | CWEventMask, &setWindowAttributes);
+  XMapWindow(display, window);
   XSetStandardProperties(display, window,"Software Renderer","Hoi!",None,NULL,0,NULL);
   XSelectInput(display, window, ButtonPressMask | KeyPressMask);
 
-  GC graphicsContext = XCreateGC(display, window, 0,0);        
-  XSetBackground(display,graphicsContext,white);
-  XSetForeground(display,graphicsContext,black);
-
-  XClearWindow(display, window);
-  XMapRaised(display, window);
+  GLXContext glContext = glXCreateContext(display, visualInfo, NULL, GL_TRUE);
+  glXMakeCurrent(display, window, glContext);
 
    //*****ALLOCATING MEMORY*****//
   u32 platformMemorySize = 128 * Mb;
@@ -110,6 +121,7 @@ int main(int argc, char** argv)
   void* gameMemory = malloc(gameMemorySize);
   assert(gameMemory);
 
+  //*****SETUP RENDERING STUFF*****//
   RenderTarget renderBuffer{};
   Linux32SetupRenderingBuffers(
       &renderBuffer, 
@@ -117,6 +129,13 @@ int main(int argc, char** argv)
       windowHeight, 
       platformMemory,
       platformMemorySize);
+
+  GLuint renderTexture;
+  glGenTextures(1, &renderTexture);
+  glBindTexture(GL_TEXTURE_2D, renderTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glEnable(GL_TEXTURE_2D);
 
   XEvent event;
   KeySym key;
@@ -142,7 +161,7 @@ int main(int argc, char** argv)
       if (event.type == ButtonPress) 
         printf("You pressed a button at (%i,%i)\n", event.xbutton.x,event.xbutton.y);
     }
-  
+
     // GAME UPDATE
     bool gameWantsToContinue = GameUpdate(
         0.1f,
@@ -152,57 +171,60 @@ int main(int argc, char** argv)
         &input);
 
     continueRunning &= gameWantsToContinue;
+
+    // PUT FRAME ON THE SCREEN
+    XWindowAttributes windowAttributes;
+    XGetWindowAttributes(display, window, &windowAttributes);
+    glViewport(0, 0, windowAttributes.width, windowAttributes.height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, 1, 0, 1, 0.5f, 1.5f);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
+
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    glTexImage2D(
+      GL_TEXTURE_2D,
+      0,
+      GL_RGBA,
+      renderBuffer.texture->width,
+      renderBuffer.texture->height,
+      0,
+      GL_RGBA,
+      GL_UNSIGNED_BYTE,
+      ((u8*)renderBuffer.texture) + sizeof(Texture));
+
+    glBegin(GL_QUADS);
+      glTexCoord2f(0, 0);
+      glVertex3f( 0, 0, 0);
+
+      glTexCoord2f(1, 0);
+      glVertex3f( 1, 0, 0);
+
+      glTexCoord2f(1, 1);
+      glVertex3f( 1, 1, 0);
+
+      glTexCoord2f(0, 1);
+      glVertex3f( 0, 1, 0);
+    glEnd();
+
+    glXSwapBuffers(display, window);
+
+    GLenum glError;
+    while ((glError = glGetError()) != GL_NO_ERROR)
+    {
+      printf("OpenGL error: %s\n", gluErrorString(glError));
+    }
+    //return 0;
+  
   } while (continueRunning);
 
-  XFreeGC(display, graphicsContext);
+  glXMakeCurrent(display, None, NULL);
+  glXDestroyContext(display, glContext);
   XDestroyWindow(display,window);
   XCloseDisplay(display); 
   return 0;
 }
-/*   GameInitialize(gameMemory, gameMemorySize); */
-
-   //*****RENDERING LOOP*****//
-/*   while (g_platformData.shouldRun) */
-/*   { */
-/*     LARGE_INTEGER currentFrameTime; */
-/*     QueryPerformanceCounter(&currentFrameTime); */
-/*     u64 ticksElapsed = currentFrameTime.QuadPart - lastFrameTime.QuadPart; */
-/*     float deltaTime = float(ticksElapsed) / float(queryFrequency.QuadPart); */
-/*     lastFrameTime = currentFrameTime; */
-
-/*     // TODO: sort this out */
-/*     char windowTitle[256]; */
-/*     wsprintf(windowTitle, "Software Renderer \t %ums per frame", u32(deltaTime * 1000.0f)); */
-/*     SetWindowText(window, windowTitle); */
-
-/*     while (PeekMessage(&message, window, 0, 0, PM_REMOVE)) */
-/*     { */
-/*       TranslateMessage(&message); */
-
-/*       if (message.message == WM_KEYDOWN) */
-/*         input.keyboard[message.wParam] = true; */
-/*       else if (message.message == WM_KEYUP) */
-/*         input.keyboard[message.wParam] = false; */
-
-/*       DispatchMessage(&message); */
-/*     } */
-
-/*     bool gameWantsToContinue = GameUpdate( */
-/*         deltaTime, */
-/*         gameMemory, */
-/*         gameMemorySize, */
-/*         &g_platformData.renderBuffer, */
-/*         &input); */
-
-/*     g_platformData.shouldRun &= gameWantsToContinue; */
-
-/*     Win32PresentToWindow( */
-/*       windowDC, */
-/*       g_platformData.windowWidth, */
-/*       g_platformData.windowHeight, */
-/*       &g_platformData.backBuffer, */
-/*       &g_platformData.renderBuffer); */
-/*   } */
-  
-/*   return 0; */
-/* } */

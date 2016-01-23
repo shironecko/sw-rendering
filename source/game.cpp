@@ -19,6 +19,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   {
     u32 bytesRead = PlatformLoadFile("../data/cooked/meshes/creeper.mesh", memory, memorySizeLeft);
+    assert(bytesRead);
     gameData->creeperMesh = (Mesh*)memory;
     u8* meshMemory = (u8*)memory;
     memory += bytesRead;
@@ -40,6 +41,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   {
     u32 bytesRead = PlatformLoadFile("../data/cooked/textures/creeper_color.tex", memory, memorySizeLeft);
+    assert(bytesRead);
     gameData->creeperColorTex = (Texture*)memory;
     memory += bytesRead;
     memorySizeLeft -= bytesRead;
@@ -73,7 +75,7 @@ local bool GameUpdate(
 
   ClearRenderTarget(
       renderTarget,
-      { 0, 0, 0, 255 });
+      { 100, 100, 200, 255 });
 
   Render(
       renderTarget,

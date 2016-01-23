@@ -143,6 +143,7 @@ u32 ParseMeshObj(
     u32 memorySize)
 {
   u32 fileSize = (u32)PlatformGetFileSize(pathToObj);
+  assert(fileSize);
   u8* temporaryStorage = memory + memorySize;
   temporaryStorage -= fileSize;
   char* objText = (char*)temporaryStorage;
@@ -300,6 +301,7 @@ u32 ParseBitmap(
     u32 memorySize)
 {
   u32 fileSize = (u32)PlatformGetFileSize(pathToBmp);
+  assert(fileSize);
   u8* rawBitmap = memory + memorySize;
   rawBitmap -= fileSize;
   PlatformLoadFile(pathToBmp, rawBitmap, fileSize);
@@ -340,10 +342,11 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
         memory,
         gameMemorySize);
 
-    PlatformWriteFile(
+    bool writeResult = PlatformWriteFile(
         "../data/cooked/meshes/creeper.mesh",
         mesh,
         meshSize);
+    assert(writeResult);
   }
 
   {
@@ -353,10 +356,11 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
         memory,
         gameMemorySize);
 
-    PlatformWriteFile(
+    bool writeResult = PlatformWriteFile(
         "../data/cooked/textures/creeper_color.tex",
         texture,
         textureSize);
+    assert(writeResult);
   }
 }
 
