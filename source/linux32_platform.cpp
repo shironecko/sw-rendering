@@ -18,6 +18,7 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
+#include <X11/XKBlib.h>
 #include<GL/gl.h>
 #include<GL/glx.h>
 #include<GL/glu.h>
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
   XMapWindow(display, window);
   XSetStandardProperties(display, window,"Software Renderer","Hoi!",None,NULL,0,NULL);
   XSelectInput(display, window, ButtonPressMask | KeyPressMask | StructureNotifyMask);
+  XkbSetDetectableAutoRepeat(display, True, nullptr);
 
   GLXContext glContext = glXCreateContext(display, visualInfo, NULL, GL_TRUE);
   glXMakeCurrent(display, window, glContext);
@@ -172,8 +174,10 @@ int main(int argc, char** argv)
       {
         case KeyPress:
         {
+          printf("[%#04x] key\n", event.xkey.keycode);
+
           char text[255];
-          if (KeyPress && XLookupString(&event.xkey, text, 255, &key, 0) == 1)
+          if (XLookupString(&event.xkey, text, 255, &key, 0) == 1)
           {
             if (text[0] == 'q') 
               continueRunning = false;
