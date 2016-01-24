@@ -25,9 +25,11 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 u64 PlatformGetFileSize(const char* path)
 {
@@ -84,8 +86,22 @@ void Linux32SetupRenderingBuffers(
   memory += sizeof(float) * width * height;
 }
 
-void DrawAQuad() {
-} 
+timespec TimespecDiff(timespec start, timespec end)
+{
+  timespec temp;
+  if ((end.tv_nsec-start.tv_nsec)<0) 
+  {
+    temp.tv_sec = end.tv_sec-start.tv_sec-1;
+    temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+  } 
+  else 
+  {
+    temp.tv_sec = end.tv_sec-start.tv_sec;
+    temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+  }
+
+  return temp;
+}
 
 int main(int argc, char** argv)
 {
@@ -143,8 +159,12 @@ int main(int argc, char** argv)
   GameInitialize(gameMemory, gameMemorySize);
 
   bool continueRunning = true;
+  float deltaTime = 0;
   do
-  {    
+  {
+    timespec startFrameTime;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &startFrameTime);
+
     while (XPending(display))
     {
       XNextEvent(display, &event);
@@ -187,7 +207,7 @@ int main(int argc, char** argv)
 
     // GAME UPDATE
     bool gameWantsToContinue = GameUpdate(
-        0.1f,
+        deltaTime,
         gameMemory,
         gameMemorySize,
         &renderBuffer,
@@ -241,7 +261,17 @@ int main(int argc, char** argv)
     {
       printf("OpenGL error: %s\n", gluErrorString(glError));
     }
-    //return 0;
+
+    timespec endFrameTime;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &endFrameTime);
+    timespec elapsedTime = TimespecDiff(startFrameTime, endFrameTime);
+    i32 elapsedMlsec = elapsedTime.tv_nsec / 1000 / 1000;
+    elapsedMlsec += elapsedTime.tv_sec * 1000;
+    deltaTime = float(elapsedMlsec) / 1000.0f;
+
+    char windowTitle[255];
+    snprintf(windowTitle, 255, "Software Renderer: %3dms", elapsedMlsec);
+    XStoreName(display, window, windowTitle);
   
   } while (continueRunning);
 
