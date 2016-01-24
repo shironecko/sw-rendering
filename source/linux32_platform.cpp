@@ -1,10 +1,4 @@
-#define assert(x) __nop()
-
-#include "types.cpp"
-
-u64 PlatformGetFileSize(const char* path);
-u32 PlatformLoadFile(const char* path, void* memory, u32 memorySize);
-bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
+#include "platform_api.h"
 
 #ifdef GAME_PROJECT
 #include "game.cpp"
@@ -35,7 +29,7 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
 u64 PlatformGetFileSize(const char* path)
 {
   struct stat fileStats;
-  i32 statResult = stat(path, &fileStats);
+  s32 statResult = stat(path, &fileStats);
 
   if (statResult != 0)
     return 0;
@@ -45,7 +39,7 @@ u64 PlatformGetFileSize(const char* path)
 
 u32 PlatformLoadFile(const char* path, void* memory, u32 memorySize)
 {
-  i32 file = open(path, O_RDONLY);
+  s32 file = open(path, O_RDONLY);
 
   if (file == -1)
     return 0;
@@ -60,7 +54,7 @@ bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite)
 {
   // TODO: handle directory creation
 
-  i32 file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+  s32 file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
   if (file == -1)
     return false;
 
@@ -269,7 +263,7 @@ int main(int argc, char** argv)
     timespec endFrameTime;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &endFrameTime);
     timespec elapsedTime = TimespecDiff(startFrameTime, endFrameTime);
-    i32 elapsedMlsec = elapsedTime.tv_nsec / 1000 / 1000;
+    s32 elapsedMlsec = elapsedTime.tv_nsec / 1000 / 1000;
     elapsedMlsec += elapsedTime.tv_sec * 1000;
     deltaTime = float(elapsedMlsec) / 1000.0f;
 

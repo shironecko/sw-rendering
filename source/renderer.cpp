@@ -1,8 +1,4 @@
-// TODO: sort this out
-/* #include <array> */
-/* #include <vector> */
-/* #include <algorithm> */
-/* #include <limits> */
+#include "platform_api.h"
 
 struct Color32
 {
@@ -75,14 +71,14 @@ namespace RenderMode
 }
 
 // TODO: sort this out
-void my_swap(i32& a, i32& b)
+void my_swap(s32& a, s32& b)
 {
-  i32 tmp = a;
+  s32 tmp = a;
   a = b;
   b = tmp;
 }
 
-u32 my_abs(i32 x)
+u32 my_abs(s32 x)
 {
   return x > 0 ? x : -x;
 }
@@ -99,7 +95,7 @@ T my_max(T a, T b)
   return a > b ? a : b;
 }
 
-void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color32 color, Texture* texture)
+void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, Color32 color, Texture* texture)
 {
   if (my_abs(x2 - x1) > my_abs(y2 - y1)) // horizontal line
   {
@@ -111,7 +107,7 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color32 color, Texture* texture)
 
     float y = float(y1);
     float step = float(y2 - y1) / float(x2 - x1);
-    for (i32 x = x1; x <= x2; ++x)
+    for (s32 x = x1; x <= x2; ++x)
     {
       texture->SetTexel(x, u32(y), color);
       y += step;
@@ -127,7 +123,7 @@ void DrawLine(i32 x1, i32 y1, i32 x2, i32 y2, Color32 color, Texture* texture)
 
     float x = float(x1);
     float step = float(x2 - x1) / float(y2 - y1);
-    for (i32 y = y1; y <= y2; ++y)
+    for (s32 y = y1; y <= y2; ++y)
     {
       texture->SetTexel(u32(x), y, color);
       x += step;

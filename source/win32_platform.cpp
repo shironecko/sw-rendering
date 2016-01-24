@@ -1,17 +1,4 @@
-#define _HAS_EXCEPTIONS 0
-#define _STATIC_CPPLIB
-
-// TODO: sort this out
-//#include <assert.h>
-//#include <stdio.h>
-
-#define assert(x) __nop()
-
-#include "types.cpp"
-
-u64 PlatformGetFileSize(char* path);
-u32 PlatformLoadFile(char* path, void* memory, u32 memorySize);
-bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
+#include "platform_api.h"
 
 #ifdef GAME_PROJECT
 #include "game.cpp"
@@ -20,6 +7,9 @@ bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite);
 #else
 #error "You did not specified project type!"
 #endif
+
+#define _HAS_EXCEPTIONS 0
+#define _STATIC_CPPLIB
 
 #include <windows.h>
 

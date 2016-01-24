@@ -1,3 +1,5 @@
+#include "platform_api.h"
+
 #include "math3d.cpp"
 #include "renderer.cpp"
 #include "game_common.cpp"
@@ -266,14 +268,14 @@ struct BitmapFileHeader
 struct BitmapInfoHeader 
 {
   u32 size;
-  i32 width;
-  i32 height;
+  s32 width;
+  s32 height;
   u16 planes;
   u16 bitCount;
   u32 compression;
   u32 sizeImage;
-  i32 xPelsPerMeter;
-  i32 yPelsPerMeter;
+  s32 xPelsPerMeter;
+  s32 yPelsPerMeter;
   u32 clrUsed;
   u32 clrImportant;
 };

@@ -1,6 +1,8 @@
+#include "game_api.h"
+#include "platform_api.h"
+
 #include "math3d.cpp"
 #include "renderer.cpp"
-#include "game_common.cpp"
 
 struct GameData
 {

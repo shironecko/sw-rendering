@@ -1,6 +1,5 @@
+#include "platform_api.h"
 #include <cmath>
-#include <cassert>
-
 #include "pIII_matrix_inverse.c"
 
 const float PI = float(3.14159265359);
