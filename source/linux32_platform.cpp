@@ -89,11 +89,8 @@ void DrawAQuad() {
 
 int main(int argc, char** argv)
 {
+  //*****CREATING A WINDOW*****//
   Display* display = XOpenDisplay((char *)0);
-
-  u32 windowWidth = 640;
-  u32 windowHeight = 480;
-
 
   GLint glAttributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
   XVisualInfo* visualInfo = glXChooseVisual(display, 0, glAttributes);
@@ -104,10 +101,12 @@ int main(int argc, char** argv)
   setWindowAttributes.colormap = colorMap;
   setWindowAttributes.event_mask = ExposureMask | KeyPressMask;
 
+  u32 windowWidth = 640;
+  u32 windowHeight = 480;
   Window window = XCreateWindow(display, rootWindow, 0, 0, 600, 600, 0, visualInfo->depth, InputOutput, visualInfo->visual, CWColormap | CWEventMask, &setWindowAttributes);
   XMapWindow(display, window);
   XSetStandardProperties(display, window,"Software Renderer","Hoi!",None,NULL,0,NULL);
-  XSelectInput(display, window, ButtonPressMask | KeyPressMask);
+  XSelectInput(display, window, ButtonPressMask | KeyPressMask | StructureNotifyMask);
 
   GLXContext glContext = glXCreateContext(display, visualInfo, NULL, GL_TRUE);
   glXMakeCurrent(display, window, glContext);
@@ -139,7 +138,6 @@ int main(int argc, char** argv)
 
   XEvent event;
   KeySym key;
-  char text[255];
   Input input{};
 
   GameInitialize(gameMemory, gameMemorySize);
@@ -150,16 +148,41 @@ int main(int argc, char** argv)
     while (XPending(display))
     {
       XNextEvent(display, &event);
-      if (event.type == KeyPress && XLookupString(&event.xkey, text, 255, &key, 0) == 1) 
+      switch (event.type)
       {
-        if (text[0] == 'q') 
-          continueRunning = false;
+        case KeyPress:
+        {
+          char text[255];
+          if (KeyPress && XLookupString(&event.xkey, text, 255, &key, 0) == 1)
+          {
+            if (text[0] == 'q') 
+              continueRunning = false;
 
-        printf("You pressed the %c key!\n",text[0]);
-      }
+          }
+        } break;
+        case ButtonPress:
+        {
+          printf("You pressed a button at (%i,%i)\n", event.xbutton.x,event.xbutton.y);
+        } break;
+        case ConfigureNotify:
+        {
+          XConfigureEvent xce = event.xconfigure;
 
-      if (event.type == ButtonPress) 
-        printf("You pressed a button at (%i,%i)\n", event.xbutton.x,event.xbutton.y);
+          if (xce.width != windowWidth ||
+              xce.height != windowHeight) 
+          {
+            windowWidth = xce.width;
+            windowHeight = xce.height;
+
+            Linux32SetupRenderingBuffers(
+                &renderBuffer, 
+                windowWidth, 
+                windowHeight, 
+                platformMemory,
+                platformMemorySize);
+          }
+        } break;
+      };
     }
 
     // GAME UPDATE
