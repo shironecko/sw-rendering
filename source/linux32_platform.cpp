@@ -233,6 +233,8 @@ int main(int argc, char** argv)
 
   GLXContext glContext = glXCreateContext(display, visualInfo, NULL, GL_TRUE);
   glXMakeCurrent(display, window, glContext);
+  Atom wmDeleteMessage = XInternAtom(display, "WM_DELETE_WINDOW", False);
+  XSetWMProtocols(display, window, &wmDeleteMessage, 1);
 
    //*****ALLOCATING MEMORY*****//
   u32 platformMemorySize = 128 * Mb;
@@ -304,6 +306,14 @@ int main(int argc, char** argv)
                 platformMemory,
                 platformMemorySize);
           }
+        } break;
+
+        case ClientMessage:
+        {
+          // yeah, this is bizzare, can't do much about it :(
+          if (event.xclient.data.l[0] == wmDeleteMessage)
+              continueRunning = false;
+
         } break;
       };
     }
