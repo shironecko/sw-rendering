@@ -1,4 +1,3 @@
-#include "game_api.h"
 #include "platform_api.h"
 
 #include "math3d.cpp"
@@ -55,22 +54,22 @@ local bool GameUpdate(
     void* gameMemory,
     u32 gameMemorySize,
     RenderTarget* renderTarget,
-    Input* input)
+    bool* kbState)
 {
   const float camZoomSpeed = 1.0f;
   const float camRotationSpeed = 2.0f;
   local_persist float camDistance = 4.0f;
   local_persist float camRotation = 0;
 
-  if (input->keyboard['W'])
+  if (kbState[KbKey::W])
     camDistance -= camZoomSpeed * deltaTime;
-  if (input->keyboard['S'])
+  if (kbState[KbKey::S])
     camDistance += camZoomSpeed * deltaTime;
-  if (input->keyboard['A'])
+  if (kbState[KbKey::A])
     camRotation -= camRotationSpeed * deltaTime;
-  if (input->keyboard['D'])
+  if (kbState[KbKey::D])
     camRotation += camRotationSpeed * deltaTime;
-  if (input->keyboard['Q'])
+  if (kbState[KbKey::Q])
     return false;
 
   GameData* gameData = (GameData*)gameMemory;

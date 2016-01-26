@@ -84,10 +84,10 @@ void Linux32SetupRenderingBuffers(
 timespec TimespecDiff(timespec start, timespec end)
 {
   timespec temp;
-  if ((end.tv_nsec-start.tv_nsec)<0) 
+  if ((end.tv_nsec-start.tv_nsec) < 0) 
   {
-    temp.tv_sec = end.tv_sec-start.tv_sec-1;
-    temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+    temp.tv_sec = end.tv_sec - start.tv_sec - 1;
+    temp.tv_nsec = 1000000000 + end.tv_nsec - start.tv_nsec;
   } 
   else 
   {
@@ -97,6 +97,117 @@ timespec TimespecDiff(timespec start, timespec end)
 
   return temp;
 }
+
+global const u32 g_keyMap[0xffff + 1] =
+{
+  [XK_BackSpace]    = KbKey::BACKSPACE,
+  [XK_Tab]          = KbKey::TAB,
+  [XK_Return]       = KbKey::RETURN,
+  [XK_Escape]       = KbKey::ESCAPE,
+  [XK_Delete]       = KbKey::DELETE,
+
+  [XK_Left]         = KbKey::LEFT,
+  [XK_Up]           = KbKey::UP,
+  [XK_Right]        = KbKey::RIGHT,
+  [XK_Down]         = KbKey::DOWN,
+  [XK_Page_Up]      = KbKey::PAGE_UP,
+  [XK_Page_Down]    = KbKey::PAGE_DOWN,
+  [XK_End]          = KbKey::END,
+  [XK_Home]         = KbKey::HOME,
+
+  [XK_F1]           = KbKey::F1,
+  [XK_F2]           = KbKey::F2,
+  [XK_F3]           = KbKey::F3,
+  [XK_F4]           = KbKey::F4,
+  [XK_F5]           = KbKey::F5,
+  [XK_F6]           = KbKey::F6,
+  [XK_F7]           = KbKey::F7,
+  [XK_F8]           = KbKey::F8,
+  [XK_F9]           = KbKey::F9,
+  [XK_F10]          = KbKey::F10,
+  [XK_F11]          = KbKey::F11,
+  [XK_F12]          = KbKey::F12,
+
+  [XK_Shift_L]      = KbKey::SHIFT_L,
+  [XK_Shift_R]      = KbKey::SHIFT_R,
+  [XK_Control_L]    = KbKey::CONTROL_L,
+  [XK_Control_R]    = KbKey::CONTROL_R,
+
+  [XK_0]            = KbKey::N_0,
+  [XK_1]            = KbKey::N_1,
+  [XK_2]            = KbKey::N_2,
+  [XK_3]            = KbKey::N_3,
+  [XK_4]            = KbKey::N_4,
+  [XK_5]            = KbKey::N_5,
+  [XK_6]            = KbKey::N_6,
+  [XK_7]            = KbKey::N_7,
+  [XK_8]            = KbKey::N_8,
+  [XK_9]            = KbKey::N_9,
+  [XK_colon]        = KbKey::COLON,
+  [XK_semicolon]    = KbKey::SEMICOLON,
+  [XK_less]         = KbKey::COMMA,
+  [XK_greater]      = KbKey::PERIOD,
+  [XK_equal]        = KbKey::EQUALS,
+  [XK_question]     = KbKey::SLASH,
+  [XK_A]            = KbKey::A,
+  [XK_B]            = KbKey::B,
+  [XK_C]            = KbKey::C,
+  [XK_D]            = KbKey::D,
+  [XK_E]            = KbKey::E,
+  [XK_F]            = KbKey::F,
+  [XK_G]            = KbKey::G,
+  [XK_H]            = KbKey::H,
+  [XK_I]            = KbKey::I,
+  [XK_J]            = KbKey::J,
+  [XK_K]            = KbKey::K,
+  [XK_L]            = KbKey::L,
+  [XK_M]            = KbKey::M,
+  [XK_N]            = KbKey::N,
+  [XK_O]            = KbKey::O,
+  [XK_P]            = KbKey::P,
+  [XK_Q]            = KbKey::Q,
+  [XK_R]            = KbKey::R,
+  [XK_S]            = KbKey::S,
+  [XK_T]            = KbKey::T,
+  [XK_U]            = KbKey::U,
+  [XK_V]            = KbKey::V,
+  [XK_W]            = KbKey::W,
+  [XK_X]            = KbKey::X,
+  [XK_Y]            = KbKey::Y,
+  [XK_Z]            = KbKey::Z,
+
+  [XK_a]            = KbKey::A,
+  [XK_b]            = KbKey::B,
+  [XK_c]            = KbKey::C,
+  [XK_d]            = KbKey::D,
+  [XK_e]            = KbKey::E,
+  [XK_f]            = KbKey::F,
+  [XK_g]            = KbKey::G,
+  [XK_h]            = KbKey::H,
+  [XK_i]            = KbKey::I,
+  [XK_j]            = KbKey::J,
+  [XK_k]            = KbKey::K,
+  [XK_l]            = KbKey::L,
+  [XK_m]            = KbKey::M,
+  [XK_n]            = KbKey::N,
+  [XK_o]            = KbKey::O,
+  [XK_p]            = KbKey::P,
+  [XK_q]            = KbKey::Q,
+  [XK_r]            = KbKey::R,
+  [XK_s]            = KbKey::S,
+  [XK_t]            = KbKey::T,
+  [XK_u]            = KbKey::U,
+  [XK_v]            = KbKey::V,
+  [XK_w]            = KbKey::W,
+  [XK_x]            = KbKey::X,
+  [XK_y]            = KbKey::Y,
+  [XK_z]            = KbKey::Z,
+
+  [XK_backslash]    = KbKey::BACKSLASH,
+  [XK_bracketleft]  = KbKey::BRACKET_L,
+  [XK_bracketright] = KbKey::BRACKET_R,
+  [XK_grave]        = KbKey::GRAVE,
+};
 
 int main(int argc, char** argv)
 {
@@ -117,7 +228,7 @@ int main(int argc, char** argv)
   Window window = XCreateWindow(display, rootWindow, 0, 0, 600, 600, 0, visualInfo->depth, InputOutput, visualInfo->visual, CWColormap | CWEventMask, &setWindowAttributes);
   XMapWindow(display, window);
   XSetStandardProperties(display, window,"Software Renderer","Hoi!",None,NULL,0,NULL);
-  XSelectInput(display, window, ButtonPressMask | KeyPressMask | StructureNotifyMask);
+  XSelectInput(display, window, ButtonPressMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask);
   XkbSetDetectableAutoRepeat(display, True, nullptr);
 
   GLXContext glContext = glXCreateContext(display, visualInfo, NULL, GL_TRUE);
@@ -149,8 +260,7 @@ int main(int argc, char** argv)
   glEnable(GL_TEXTURE_2D);
 
   XEvent event;
-  KeySym key;
-  Input input{};
+  bool kbState[KbKey::LAST_KEY] {};
 
   GameInitialize(gameMemory, gameMemorySize);
 
@@ -164,24 +274,19 @@ int main(int argc, char** argv)
     while (XPending(display))
     {
       XNextEvent(display, &event);
+      if (event.type == KeyPress || event.type == KeyRelease)
+      {
+        KeySym key = XLookupKeysym(&event.xkey, 0);
+        assert(u32(key) <= 0xffff + 1);
+
+        u32 kbStateIdx = g_keyMap[u32(key)];
+        assert(kbStateIdx < KbKey::LAST_KEY);
+
+        kbState[kbStateIdx] = event.type == KeyPress;
+      }
+
       switch (event.type)
       {
-        case KeyPress:
-        {
-          printf("[%#04x] key\n", event.xkey.keycode);
-
-          char text[255];
-          if (XLookupString(&event.xkey, text, 255, &key, 0) == 1)
-          {
-            if (text[0] == 'q') 
-              continueRunning = false;
-
-          }
-        } break;
-        case ButtonPress:
-        {
-          printf("You pressed a button at (%i,%i)\n", event.xbutton.x,event.xbutton.y);
-        } break;
         case ConfigureNotify:
         {
           XConfigureEvent xce = event.xconfigure;
@@ -209,7 +314,7 @@ int main(int argc, char** argv)
         gameMemory,
         gameMemorySize,
         &renderBuffer,
-        &input);
+        kbState);
 
     continueRunning &= gameWantsToContinue;
 
