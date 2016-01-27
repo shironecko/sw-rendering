@@ -1,3 +1,6 @@
+#define _HAS_EXCEPTIONS 0
+#define _STATIC_CPPLIB
+
 #include "platform_api.h"
 
 #ifdef GAME_PROJECT
@@ -7,9 +10,6 @@
 #else
 #error "You did not specified project type!"
 #endif
-
-#define _HAS_EXCEPTIONS 0
-#define _STATIC_CPPLIB
 
 #include <windows.h>
 
@@ -139,16 +139,25 @@ struct Win32BackBuffer
 
 struct
 {
-  bool            shouldRun           = true;
-  u32             windowWidth         = 640;
-  u32             windowHeight        = 480;
+  bool            shouldRun;
+  u32             windowWidth;
+  u32             windowHeight;
 
-  void*           memory              = nullptr;
-  u32             memorySize          = 0;
-  RenderTarget    renderBuffer        {};
-  Win32BackBuffer backBuffer          {};
+  void*           memory;
+  u32             memorySize;
+  RenderTarget    renderBuffer;
+  Win32BackBuffer backBuffer;
 
-} g_platformData;
+} g_platformData
+{
+  true,
+  640,
+  480,
+  nullptr,
+  0,
+  {},
+  {}
+};
 
 void Win32SetupRenderingBuffers(u32 width, u32 height)
 {
@@ -217,6 +226,82 @@ void Win32PresentToWindow(
     DIB_RGB_COLORS,
     SRCCOPY);
 }
+
+global const u32 g_keyMapSize = 0xA5 + 1;
+
+global const u32 g_keyMap[0xA5 + 1] =
+{
+  [VK_BACK]       = KbKey::BACKSPACE,
+  [VK_TAB]        = KbKey::TAB,
+  [VK_RETURN]     = KbKey::RETURN,
+  [VK_ESCAPE]     = KbKey::ESCAPE,
+  [VK_SPACE]      = KbKey::SPACE,
+  [VK_END]        = KbKey::END,
+  [VK_HOME]       = KbKey::HOME,
+  [VK_LEFT]       = KbKey::LEFT,
+  [VK_UP]         = KbKey::UP,
+  [VK_RIGHT]      = KbKey::RIGHT,
+  [VK_DOWN]       = KbKey::DOWN,
+  [VK_DELETE]     = KbKey::DELETE,
+
+  [0x30]          = KbKey::N_0,
+  [0x31]          = KbKey::N_1,
+  [0x32]          = KbKey::N_2,
+  [0x33]          = KbKey::N_3,
+  [0x34]          = KbKey::N_4,
+  [0x35]          = KbKey::N_5,
+  [0x36]          = KbKey::N_6,
+  [0x37]          = KbKey::N_7,
+  [0x38]          = KbKey::N_8,
+  [0x39]          = KbKey::N_9,
+
+  [0x41]          = KbKey::A,
+  [0x42]          = KbKey::B,
+  [0x43]          = KbKey::C,
+  [0x44]          = KbKey::D,
+  [0x45]          = KbKey::E,
+  [0x46]          = KbKey::F,
+  [0x47]          = KbKey::G,
+  [0x48]          = KbKey::H,
+  [0x49]          = KbKey::I,
+  [0x4A]          = KbKey::J,
+  [0x4B]          = KbKey::K,
+  [0x4C]          = KbKey::L,
+  [0x4D]          = KbKey::M,
+  [0x4E]          = KbKey::N,
+  [0x4F]          = KbKey::O,
+  [0x50]          = KbKey::P,
+  [0x51]          = KbKey::Q,
+  [0x52]          = KbKey::R,
+  [0x53]          = KbKey::S,
+  [0x54]          = KbKey::T,
+  [0x55]          = KbKey::U,
+  [0x56]          = KbKey::V,
+  [0x57]          = KbKey::W,
+  [0x58]          = KbKey::X,
+  [0x59]          = KbKey::Y,
+  [0x5A]          = KbKey::Z,
+
+  [VK_F1]         = KbKey::F1,
+  [VK_F2]         = KbKey::F2,
+  [VK_F3]         = KbKey::F3,
+  [VK_F4]         = KbKey::F4,
+  [VK_F5]         = KbKey::F5,
+  [VK_F6]         = KbKey::F6,
+  [VK_F7]         = KbKey::F7,
+  [VK_F8]         = KbKey::F8,
+  [VK_F9]         = KbKey::F9,
+  [VK_F10]        = KbKey::F10,
+  [VK_F11]        = KbKey::F11,
+  [VK_F12]        = KbKey::F12,
+
+  [VK_LSHIFT]     = KbKey::SHIFT_L,
+  [VK_RSHIFT]     = KbKey::SHIFT_R,
+  [VK_LCONTROL]   = KbKey::CONTROL_L,
+  [VK_RCONTROL]   = KbKey::CONTROL_R,
+  [VK_LMENU]      = KbKey::ALT_L,
+  [VK_RMENU]      = KbKey::ALT_R, // 0xA5 Right MENU key
+};
 
 LRESULT CALLBACK Win32WindowProc(
   HWND   window,
@@ -319,7 +404,7 @@ int CALLBACK WinMain(
 
   HDC windowDC = GetDC(window);
   MSG message {};
-  Input input {};
+  bool kbState[KbKey::LAST_KEY] {};
 
   LARGE_INTEGER lastFrameTime;
   LARGE_INTEGER queryFrequency;
@@ -346,10 +431,17 @@ int CALLBACK WinMain(
     {
       TranslateMessage(&message);
 
-      if (message.message == WM_KEYDOWN)
-        input.keyboard[message.wParam] = true;
-      else if (message.message == WM_KEYUP)
-        input.keyboard[message.wParam] = false;
+      if (message.message == WM_KEYDOWN || message.message == WM_KEYUP)
+      {
+        u32 keyMapIdx = message.wParam;
+        if (keyMapIdx < g_keyMapSize)
+        {
+          u32 kbStateIdx = g_keyMap[keyMapIdx];
+          assert(kbStateIdx < KbKey::LAST_KEY);
+
+          kbState[kbStateIdx] = message.message == WM_KEYDOWN;
+        }
+      }
 
       DispatchMessage(&message);
     }
@@ -359,7 +451,7 @@ int CALLBACK WinMain(
         gameMemory,
         gameMemorySize,
         &g_platformData.renderBuffer,
-        &input);
+        kbState);
 
     g_platformData.shouldRun &= gameWantsToContinue;
 

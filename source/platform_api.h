@@ -61,6 +61,7 @@ struct KbKey
    X,
    Y,
    Z,
+   
    N_1,
    N_2,
    N_3,
@@ -71,18 +72,22 @@ struct KbKey
    N_8,
    N_9,
    N_0,
+
    SHIFT_L,
    SHIFT_R,
    CONTROL_L,
    CONTROL_R,
    ALT_L,
    ALT_R,
+
    LEFT,
    RIGHT,
    UP,
    DOWN,
+
    PAGE_DOWN,
    PAGE_UP,
+
    RETURN,
    ESCAPE,
    DELETE,
@@ -91,20 +96,14 @@ struct KbKey
    SPACE,
    END,
    HOME,
-   MINUS,
-   EQUALS,
-   BRACKET_L,
-   BRACKET_R,
-   BACKSLASH,
-   NONUSHASH,
+
    COLON,
    SEMICOLON,
    APOSTROPHE,
    GRAVE,
    COMMA,
    PERIOD,
-   SLASH,
-   CAPSLOCK,
+
    F1,
    F2,
    F3,
