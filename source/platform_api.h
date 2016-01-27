@@ -34,7 +34,7 @@ struct KbKey
 {
   enum
   {
-   UNKNOWN,
+   Unknown,
    A,
    B,
    C,
@@ -73,36 +73,36 @@ struct KbKey
    N_9,
    N_0,
 
-   SHIFT_L,
-   SHIFT_R,
-   CONTROL_L,
-   CONTROL_R,
-   ALT_L,
-   ALT_R,
+   ShiftL,
+   ShiftR,
+   ControlL,
+   ControlR,
+   AltL,
+   AltR,
 
-   LEFT,
-   RIGHT,
-   UP,
-   DOWN,
+   Left,
+   Right,
+   Up,
+   Down,
 
-   PAGE_DOWN,
-   PAGE_UP,
+   PageDown,
+   PageUp,
 
-   RETURN,
-   ESCAPE,
-   DELETE,
-   BACKSPACE,
-   TAB,
-   SPACE,
-   END,
-   HOME,
+   Return,
+   Escape,
+   Delete,
+   Backspace,
+   Tab,
+   Space,
+   End,
+   Home,
 
-   COLON,
-   SEMICOLON,
-   APOSTROPHE,
-   GRAVE,
-   COMMA,
-   PERIOD,
+   Colon,
+   Semicolon,
+   Apostrophe,
+   Grave,
+   Comma,
+   Period,
 
    F1,
    F2,
@@ -116,6 +116,6 @@ struct KbKey
    F10,
    F11,
    F12,
-   LAST_KEY
+   LastKey
   };
 };
