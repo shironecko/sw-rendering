@@ -13,7 +13,7 @@
 
 #include <windows.h>
 
-u64 PlatformGetFileSize(char* path)
+u64 PlatformGetFileSize(const char* path)
 {
   HANDLE fileHandle = CreateFile(
     path,
@@ -47,7 +47,7 @@ u64 PlatformGetFileSize(char* path)
   return u64(size.QuadPart);
 }
 
-u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
+u32 PlatformLoadFile(const char* path, void* memory, u32 memorySize)
 {
   HANDLE fileHandle = CreateFile(
     path,
@@ -84,7 +84,7 @@ u32 PlatformLoadFile(char* path, void* memory, u32 memorySize)
   return bytesRead;
 }
 
-bool PlatformWriteFile(char* path, void* memory, u32 bytesToWrite)
+bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite)
 {
   // TODO: handle directory creation
 
