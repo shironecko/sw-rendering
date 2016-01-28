@@ -4,7 +4,7 @@
 
 const float PI = float(3.14159265359);
 
-float abs(float value)
+float my_abs(float value)
 {
   return value < 0 ? value * -1.0f : value;
 }
