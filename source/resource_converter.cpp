@@ -1,6 +1,7 @@
+#include "platform_api.h"
+
 #include "math3d.cpp"
 #include "renderer.cpp"
-#include "game_common.cpp"
 
 u32 SkipLine(char* inText)
 {
@@ -143,6 +144,7 @@ u32 ParseMeshObj(
     u32 memorySize)
 {
   u32 fileSize = (u32)PlatformGetFileSize(pathToObj);
+  assert(fileSize);
   u8* temporaryStorage = memory + memorySize;
   temporaryStorage -= fileSize;
   char* objText = (char*)temporaryStorage;
@@ -265,14 +267,14 @@ struct BitmapFileHeader
 struct BitmapInfoHeader 
 {
   u32 size;
-  i32 width;
-  i32 height;
+  s32 width;
+  s32 height;
   u16 planes;
   u16 bitCount;
   u32 compression;
   u32 sizeImage;
-  i32 xPelsPerMeter;
-  i32 yPelsPerMeter;
+  s32 xPelsPerMeter;
+  s32 yPelsPerMeter;
   u32 clrUsed;
   u32 clrImportant;
 };
@@ -300,6 +302,7 @@ u32 ParseBitmap(
     u32 memorySize)
 {
   u32 fileSize = (u32)PlatformGetFileSize(pathToBmp);
+  assert(fileSize);
   u8* rawBitmap = memory + memorySize;
   rawBitmap -= fileSize;
   PlatformLoadFile(pathToBmp, rawBitmap, fileSize);
@@ -340,10 +343,11 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
         memory,
         gameMemorySize);
 
-    PlatformWriteFile(
+    bool writeResult = PlatformWriteFile(
         "../data/cooked/meshes/creeper.mesh",
         mesh,
         meshSize);
+    assert(writeResult);
   }
 
   {
@@ -353,10 +357,11 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
         memory,
         gameMemorySize);
 
-    PlatformWriteFile(
+    bool writeResult = PlatformWriteFile(
         "../data/cooked/textures/creeper_color.tex",
         texture,
         textureSize);
+    assert(writeResult);
   }
 }
 
@@ -365,7 +370,7 @@ local bool GameUpdate(
     void* /* gameMemory */,
     u32 /* gameMemorySize */,
     RenderTarget* /* renderTarget */,
-    Input* /* input */)
+    bool* /* kbState */)
 {
   // NOTE: converter does all stuff on GameInitialize(...)
   return false;

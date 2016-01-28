@@ -1,6 +1,7 @@
+#include "platform_api.h"
+
 #include "math3d.cpp"
 #include "renderer.cpp"
-#include "game_common.cpp"
 
 struct GameData
 {
@@ -19,6 +20,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   {
     u32 bytesRead = PlatformLoadFile("../data/cooked/meshes/creeper.mesh", memory, memorySizeLeft);
+    assert(bytesRead);
     gameData->creeperMesh = (Mesh*)memory;
     u8* meshMemory = (u8*)memory;
     memory += bytesRead;
@@ -40,6 +42,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   {
     u32 bytesRead = PlatformLoadFile("../data/cooked/textures/creeper_color.tex", memory, memorySizeLeft);
+    assert(bytesRead);
     gameData->creeperColorTex = (Texture*)memory;
     memory += bytesRead;
     memorySizeLeft -= bytesRead;
@@ -51,29 +54,29 @@ local bool GameUpdate(
     void* gameMemory,
     u32 gameMemorySize,
     RenderTarget* renderTarget,
-    Input* input)
+    bool* kbState)
 {
   const float camZoomSpeed = 1.0f;
   const float camRotationSpeed = 2.0f;
   local_persist float camDistance = 4.0f;
   local_persist float camRotation = 0;
 
-  if (input->keyboard['W'])
+  if (kbState[KbKey::W])
     camDistance -= camZoomSpeed * deltaTime;
-  if (input->keyboard['S'])
+  if (kbState[KbKey::S])
     camDistance += camZoomSpeed * deltaTime;
-  if (input->keyboard['A'])
+  if (kbState[KbKey::A])
     camRotation -= camRotationSpeed * deltaTime;
-  if (input->keyboard['D'])
+  if (kbState[KbKey::D])
     camRotation += camRotationSpeed * deltaTime;
-  if (input->keyboard['Q'])
+  if (kbState[KbKey::Q])
     return false;
 
   GameData* gameData = (GameData*)gameMemory;
 
   ClearRenderTarget(
       renderTarget,
-      { 0, 0, 0, 255 });
+      { 100, 100, 200, 255 });
 
   Render(
       renderTarget,
