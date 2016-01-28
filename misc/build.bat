@@ -1,14 +1,17 @@
 @echo off
 setlocal
-if not exist ..\build mkdir ..\build
-pushd ..\build
 
-if defined VS140COMNTOOLS         ( set VSTOOLS=VS140COMNTOOLS
-) else if defined VS120COMNTOOLS  ( set VSTOOLS=VS120COMNTOOLS
-) else if defined VS110COMNTOOLS  ( set VSTOOLS=VS110COMNTOOLS
-) else if defined VS100COMNTOOLS  ( set VSTOOLS=VS100COMNTOOLS
-) else if defined VS90COMNTOOLS   ( set VSTOOLS=VS90COMNTOOLS
-) else echo "Visual Studio installation is not found!" && exit /b 1
+if not exist .\build.bat cd misc
+if not exist ..\build mkdir ..\build
+cd ..\build
+
+if defined VS140COMNTOOLS         ( 
+  echo Found VS2015, compiling with it...
+  set VSTOOLS=VS140COMNTOOLS
+) else if defined VS120COMNTOOLS  ( 
+  echo Found VS2013, compiling with it...
+  set VSTOOLS=VS120COMNTOOLS
+) else echo "Visual Studio 2015 or 2013 installation is not found!" && exit /b 1
 
 call "%%%VSTOOLS%%%vsvars32.bat"
 call "%%%VSTOOLS%%%..\..\VC\bin\cl" ^
@@ -16,5 +19,4 @@ call "%%%VSTOOLS%%%..\..\VC\bin\cl" ^
   %* /W4 /wd4201 /MT /Od /Oi /Zi ^
   /link /subsystem:windows user32.lib gdi32.lib
 
-popd
 endlocal
