@@ -119,7 +119,7 @@ u32 ParseVector3(char* inText, Vector4* outVector)
   return text - inText;
 }
 
-bool StringBeginsWith(char* string, char* prefix)
+bool StringBeginsWith(const char* string, const char* prefix)
 {
   while (*string && *prefix)
   {
@@ -139,7 +139,7 @@ bool StringBeginsWith(char* string, char* prefix)
  * of the memory that was passed to this function
  */
 u32 ParseMeshObj(
-    char* pathToObj,
+    const char* pathToObj,
     u8* memory,
     u32 memorySize)
 {
@@ -297,7 +297,7 @@ struct BitmapColor32
 };
 
 u32 ParseBitmap(
-    char* pathToBmp,
+    const char* pathToBmp,
     u8* memory,
     u32 memorySize)
 {
@@ -315,7 +315,7 @@ u32 ParseBitmap(
   assert(infoHeader->bitCount == 32);
   assert(infoHeader->compression == 0 || infoHeader->compression == 3);
 
-  infoHeader->height = abs(infoHeader->height);
+  infoHeader->height = infoHeader->height >= 0 ? infoHeader->height : -infoHeader->height;
 
   Texture* texture = (Texture*)memory;
   texture->width = infoHeader->width;
@@ -339,28 +339,30 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
   {
     Mesh* mesh = (Mesh*)memory;
     u32 meshSize = ParseMeshObj(
-        "../data/source/meshes/creeper.obj",
+        "./data/source/meshes/creeper.obj",
         memory,
         gameMemorySize);
 
     bool writeResult = PlatformWriteFile(
-        "../data/cooked/meshes/creeper.mesh",
+        "./data/cooked/meshes/creeper.mesh",
         mesh,
         meshSize);
+
     assert(writeResult);
   }
 
   {
     Texture* texture = (Texture*)memory;
     u32 textureSize = ParseBitmap(
-        "../data/source/textures/creeper_color.bmp",
+        "./data/source/textures/creeper_color.bmp",
         memory,
         gameMemorySize);
 
     bool writeResult = PlatformWriteFile(
-        "../data/cooked/textures/creeper_color.tex",
+        "./data/cooked/textures/creeper_color.tex",
         texture,
         textureSize);
+
     assert(writeResult);
   }
 }

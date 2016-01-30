@@ -110,8 +110,8 @@ global const u32 g_keyMap[0xffff + 1] =
   [XK_Up]           = KbKey::Up,
   [XK_Right]        = KbKey::Right,
   [XK_Down]         = KbKey::Down,
-  [XK_Page_Up]      = KbKey::Page_up,
-  [XK_Page_Down]    = KbKey::Page_down,
+  [XK_Page_Up]      = KbKey::PageUp,
+  [XK_Page_Down]    = KbKey::PageDown,
   [XK_End]          = KbKey::End,
   [XK_Home]         = KbKey::Home,
 
@@ -147,8 +147,6 @@ global const u32 g_keyMap[0xffff + 1] =
   [XK_semicolon]    = KbKey::Semicolon,
   [XK_less]         = KbKey::Comma,
   [XK_greater]      = KbKey::Period,
-  [XK_equal]        = KbKey::Equals,
-  [XK_question]     = KbKey::Slash,
   [XK_A]            = KbKey::A,
   [XK_B]            = KbKey::B,
   [XK_C]            = KbKey::C,
@@ -203,9 +201,6 @@ global const u32 g_keyMap[0xffff + 1] =
   [XK_y]            = KbKey::Y,
   [XK_z]            = KbKey::Z,
 
-  [XK_backslash]    = KbKey::Backslash,
-  [XK_bracketleft]  = KbKey::BracketL,
-  [XK_bracketright] = KbKey::BracketR,
   [XK_grave]        = KbKey::Grave,
 };
 
@@ -262,7 +257,7 @@ int main(int argc, char** argv)
   glEnable(GL_TEXTURE_2D);
 
   XEvent event;
-  bool kbState[KbKey::LAST_KEY] {};
+  bool kbState[KbKey::LastKey] {};
 
   GameInitialize(gameMemory, gameMemorySize);
 
@@ -282,7 +277,7 @@ int main(int argc, char** argv)
         assert(u32(key) <= 0xffff + 1);
 
         u32 kbStateIdx = g_keyMap[u32(key)];
-        assert(kbStateIdx < KbKey::LAST_KEY);
+        assert(kbStateIdx < KbKey::LastKey);
 
         kbState[kbStateIdx] = event.type == KeyPress;
       }

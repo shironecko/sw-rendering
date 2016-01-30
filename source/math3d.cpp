@@ -227,7 +227,7 @@ struct Matrix4x4
 
   static Matrix4x4 LookAtCamera(Vector4 eye, Vector4 target, Vector4 up)
   {
-    assert(abs(up.Length3() - 1.0f) < 0.0001f);
+    assert(my_abs(up.Length3() - 1.0f) < 0.0001f);
 
     Vector4 zaxis = (eye - target).Normalized3();
     Vector4 xaxis = Cross(up, zaxis).Normalized3();

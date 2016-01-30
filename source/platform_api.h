@@ -20,7 +20,7 @@ static_assert(sizeof(s16) == 2, TYPE_SIZE_ERROR_MSG);
 static_assert(sizeof(s32) == 4, TYPE_SIZE_ERROR_MSG);
 static_assert(sizeof(s64) == 8, TYPE_SIZE_ERROR_MSG);
 
-#define assert(x)
+#define assert(x) (void)(x)
 
 global const u32 Kb = 1024;
 global const u32 Mb = 1024 * Kb;
