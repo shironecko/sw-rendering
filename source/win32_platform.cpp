@@ -13,6 +13,14 @@
 
 #include <windows.h>
 
+void PlatformAssert(u32 condition)
+{
+  if (!condition)
+  {
+    DebugBreak();
+  }
+}
+
 u64 PlatformGetFileSize(const char* path)
 {
   HANDLE fileHandle = CreateFile(

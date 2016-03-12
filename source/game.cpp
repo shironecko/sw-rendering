@@ -7,6 +7,8 @@ struct GameData
 {
   Mesh* creeperMesh;
   Texture* creeperColorTex;
+  void* freeMemory;
+  u32 freeMemorySize;
 };
 
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
@@ -16,6 +18,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
   GameData* gameData = (GameData*)memory;
   memory += sizeof(GameData);
+  memory = align(memory);
 
   {
     gameData->creeperMesh = (Mesh*)memory;
@@ -24,6 +27,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
     assert(bytesRead);
     u8* meshMemory = (u8*)memory;
     memory += bytesRead;
+    memory = align(memory);
 
     meshMemory += sizeof(Mesh) - Mesh::offset_to_serializable_data;
     gameData->creeperMesh->vertices = (Vector4*)meshMemory;
@@ -46,7 +50,11 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
     u32 bytesRead = PlatformLoadFile("./data/cooked/textures/creeper_color.tex", memory, memoryEnd - memory);
     assert(bytesRead);
     memory += bytesRead;
+    memory = align(memory);
   }
+
+  gameData->freeMemory = memory;
+  gameData->freeMemorySize = memoryEnd - memory;
 }
 
 local bool GameUpdate(
@@ -72,6 +80,24 @@ local bool GameUpdate(
   if (kbState[KbKey::Q])
     return false;
 
+  Matrix4x4 model = Matrix4x4::Identity();
+
+  Vector4 camPos { 0, 0, camDistance, 1.0f };
+  camPos = Matrix4x4::RotationY(camRotation) * camPos;
+  Matrix4x4 view = Matrix4x4::LookAtCamera( 
+      camPos,
+      {    0,    0,    0, 1.0f },
+      {    0, 1.0f,    0,    0 });
+
+  Matrix4x4 projection = Matrix4x4::Projection(
+      90.0f, 
+      float(renderTarget->texture->width) / float(renderTarget->texture->height),
+      0.1f,
+      1000.0f);
+
+  Matrix4x4 screenMatrix = Matrix4x4::ScreenSpace( renderTarget->texture->width, renderTarget->texture->height); 
+  Matrix4x4 MVP = projection * view * model;
+
   GameData* gameData = (GameData*)gameMemory;
 
   ClearRenderTarget(
@@ -84,9 +110,12 @@ local bool GameUpdate(
       /* RenderMode::Wireframe, */
       gameData->creeperMesh,
       gameData->creeperColorTex,
-      camDistance,
-      camRotation,
-      (Vector4 { 1.0f, -1.0f, 0, 0}).Normalized3());
+      MVP,
+      screenMatrix,
+      (Vector4{ 0.5f, -1, 0.25f, 0 }).Normalized3(),
+      { 255, 255, 255, 255 },
+      gameData->freeMemory,
+      gameData->freeMemorySize);
 
   return true;
 }

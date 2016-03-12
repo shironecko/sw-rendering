@@ -15,7 +15,7 @@ if defined VS140COMNTOOLS         (
 call "%%%VSTOOLS%%%vsvars32.bat"
 call "%%%VSTOOLS%%%..\..\VC\bin\cl" ^
   /nologo .\source\win32_platform.cpp %* ^
-  /W4 /wd4201 /MT /Od /Oi /Zi ^
+  /W4 /wd4100 /wd4201 /MT /Od /Oi /Zi ^
   /link /subsystem:windows user32.lib gdi32.lib
 
 endlocal

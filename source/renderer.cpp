@@ -173,37 +173,23 @@ void Render(
     u32 renderMode,
     Mesh* mesh,
     Texture* colorTexture,
-    float camDistance, float camRotY,
-    Vector4 sunlightDirection)
+    Matrix4x4 MVP,
+    Matrix4x4 screenMatrix,
+    Vector4 sunlightDirection,
+    Color32 sunlightColor,
+    void* tmpMemory,
+    u32 tmpMemorySize)
 {
   Texture* targetTexture = target->texture;
   float* zBuffer = target->zBuffer;
-
-  Matrix4x4 model = Matrix4x4::Identity();
-
-  Vector4 camPos { 0, 0, camDistance, 1.0f };
-  camPos = Matrix4x4::RotationY(camRotY) * camPos;
-  Matrix4x4 view = Matrix4x4::LookAtCamera( 
-      camPos,
-      {    0,    0,    0, 1.0f },
-      {    0, 1.0f,    0,    0 });
-
-  Matrix4x4 projection = Matrix4x4::Projection(
-      90.0f, 
-      float(targetTexture->width) / float(targetTexture->height),
-      0.1f,
-      1000.0f);
-
-  Matrix4x4 screen = Matrix4x4::ScreenSpace( targetTexture->width, targetTexture->height); 
-  Matrix4x4 transform = projection * view * model;
 
   for (u32 i = 0; i < mesh->facesCount; ++i)
   {
     MeshFace face = mesh->faces[i];
     Vector4 verts[3];
-    verts[0] = transform * mesh->vertices[face.vertices[0]];
-    verts[1] = transform * mesh->vertices[face.vertices[1]];
-    verts[2] = transform * mesh->vertices[face.vertices[2]];
+    verts[0] = MVP * mesh->vertices[face.vertices[0]];
+    verts[1] = MVP * mesh->vertices[face.vertices[1]];
+    verts[2] = MVP * mesh->vertices[face.vertices[2]];
 
     bool isInsideFrustrum = true;
     for (Vector4& vert: verts)
@@ -217,7 +203,7 @@ void Render(
       }
 
       vert = vert / vert.w;
-      vert = screen * vert;
+      vert = screenMatrix * vert;
     }
 
     if (!isInsideFrustrum)

@@ -20,19 +20,40 @@ static_assert(sizeof(s16) == 2, TYPE_SIZE_ERROR_MSG);
 static_assert(sizeof(s32) == 4, TYPE_SIZE_ERROR_MSG);
 static_assert(sizeof(s64) == 8, TYPE_SIZE_ERROR_MSG);
 
-#if defined(WIN32)
-  #define assert(x) do { if (!(x)) { DebugBreak(); } } while(0);
+/*
+ * TODO: is this a good way to figure out bitness? or do I need to check
+ * against platform-dependant defines?
+ */
+#if defined(_WIN32)
+  #define PAPI_X32
+#elif defined(_WIN64)
+  #define PAPI_X64
 #else
-  #error "Unsupported platform!"
+  #error "Unsupported platform!" 
 #endif
+
+#if defined(PAPI_X32)
+  typedef u32 uint_ptr;
+#elif defined(PAPI_X64)
+  typedef u64 uint_ptr;
+#endif
+
+template<typename T>
+T align(T x, u32 alignment = 16)
+{
+  return (T)(((uint_ptr)x + alignment - 1) & (~(alignment - 1)));
+}
 
 global const u32 Kb = 1024;
 global const u32 Mb = 1024 * Kb;
 global const u32 Gb = 1024 * Mb;
 
+void PlatformAssert(u32 condition);
 u64 PlatformGetFileSize(const char* path);
 u32 PlatformLoadFile(const char* path, void* memory, u32 memorySize);
 bool PlatformWriteFile(const char* path, void* memory, u32 bytesToWrite);
+
+#define assert(x) PlatformAssert((u32)(x))
 
 struct KbKey
 {
