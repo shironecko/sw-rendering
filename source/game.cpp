@@ -66,7 +66,7 @@ local bool GameUpdate(
 {
   const float camZoomSpeed = 1.0f;
   const float camRotationSpeed = 2.0f;
-  local_persist float camDistance = 4.0f;
+  local_persist float camDistance = 7.0f;
   local_persist float camRotation = 0;
 
   if (kbState[KbKey::W])
@@ -102,12 +102,12 @@ local bool GameUpdate(
 
   ClearRenderTarget(
       renderTarget,
-      { 100, 100, 200, 255 });
+      { 0, 0, 0, 255 });
 
   Render(
       renderTarget,
-      RenderMode::Textured | RenderMode::Shaded,
-      /* RenderMode::Wireframe, */
+      /* RenderMode::Textured | RenderMode::Shaded, */
+      RenderMode::Wireframe,
       gameData->creeperMesh,
       gameData->creeperColorTex,
       MVP,
