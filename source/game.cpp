@@ -106,8 +106,7 @@ local bool GameUpdate(
 
   Render(
       renderTarget,
-      /* RenderMode::Textured | RenderMode::Shaded, */
-      RenderMode::Wireframe,
+      RenderMode::Textured | RenderMode::Shaded,
       gameData->creeperMesh,
       gameData->creeperColorTex,
       MVP,
