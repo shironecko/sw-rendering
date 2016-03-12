@@ -1,11 +1,11 @@
 @echo off
 
-if not exist .\build.bat cd misc
+if not exist .\misc\build.bat cd ..\
 
 if exist ..\data\cooked rmdir /Q /S ..\data\cooked
 mkdir ..\data\cooked\textures ..\data\cooked\meshes
 
-call ".\build.bat" -DRESOURCE_CONVERTER_PROJECT
-call "..\build\build.exe"
-call ".\build.bat" -DGAME_PROJECT
-call "..\build\build.exe"
+call .\misc\build.bat -Fo.\build\ -Fd.\build\resource_converter.pdb -Fe.\build\resource_converter.exe -DRESOURCE_CONVERTER_PROJECT
+call start .\build\resource_converter.exe -wo ..\
+call .\misc\build.bat -Fo.\build\ -Fd.\build\game.pdb -Fe.\build\game.exe -DGAME_PROJECT
+call start .\build\game.exe -wo ..\
