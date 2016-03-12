@@ -322,11 +322,11 @@ u32 ParseBitmap(
   texture->height = infoHeader->height;
 
   BitmapColor32* rawPixels = (BitmapColor32*)(rawBitmap + fileHeader->offBytes);
-  Color32* pixels = (Color32*)(memory + sizeof(Texture));
+  texture->texels = (Color32*)(memory + sizeof(Texture));
   for (u32 i = 0, n = texture->width * texture->height; i < n; ++i)
   {
     BitmapColor32 rawPixel = rawPixels[i];
-    pixels[i] = { rawPixel.r, rawPixel.g, rawPixel.b, 0 };
+    texture->texels[i] = { rawPixel.r, rawPixel.g, rawPixel.b, 0 };
   }
 
   return sizeof(Texture) + sizeof(Color32) * texture->width * texture->height;
@@ -345,8 +345,8 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
     bool writeResult = PlatformWriteFile(
         "./data/cooked/meshes/creeper.mesh",
-        mesh,
-        meshSize);
+        (u8*)mesh + Mesh::offset_to_serializable_data,
+        meshSize - Mesh::offset_to_serializable_data);
 
     assert(writeResult);
   }
@@ -360,8 +360,8 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 
     bool writeResult = PlatformWriteFile(
         "./data/cooked/textures/creeper_color.tex",
-        texture,
-        textureSize);
+        (u8*)texture + Texture::offset_to_serializable_data,
+        textureSize - Texture::offset_to_serializable_data);
 
     assert(writeResult);
   }

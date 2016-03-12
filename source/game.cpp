@@ -12,21 +12,20 @@ struct GameData
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 {
   u8* memory = (u8*)gameMemory;
-  u32 memorySizeLeft = gameMemorySize;
+  u8* memoryEnd = memory + gameMemorySize;
 
   GameData* gameData = (GameData*)memory;
   memory += sizeof(GameData);
-  memorySizeLeft -= sizeof(GameData);
 
   {
-    u32 bytesRead = PlatformLoadFile("./data/cooked/meshes/creeper.mesh", memory, memorySizeLeft);
-    assert(bytesRead);
     gameData->creeperMesh = (Mesh*)memory;
+    memory += Mesh::offset_to_serializable_data;
+    u32 bytesRead = PlatformLoadFile("./data/cooked/meshes/creeper.mesh", memory, memoryEnd - memory);
+    assert(bytesRead);
     u8* meshMemory = (u8*)memory;
     memory += bytesRead;
-    memorySizeLeft -= bytesRead;
 
-    meshMemory += sizeof(Mesh);
+    meshMemory += sizeof(Mesh) - Mesh::offset_to_serializable_data;
     gameData->creeperMesh->vertices = (Vector4*)meshMemory;
     meshMemory += gameData->creeperMesh->verticesCount * sizeof(Vector4);
 
@@ -41,11 +40,12 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
   }
 
   {
-    u32 bytesRead = PlatformLoadFile("./data/cooked/textures/creeper_color.tex", memory, memorySizeLeft);
-    assert(bytesRead);
     gameData->creeperColorTex = (Texture*)memory;
+    gameData->creeperColorTex->texels = (Color32*)memory + sizeof(Texture);
+    memory += Texture::offset_to_serializable_data;
+    u32 bytesRead = PlatformLoadFile("./data/cooked/textures/creeper_color.tex", memory, memoryEnd - memory);
+    assert(bytesRead);
     memory += bytesRead;
-    memorySizeLeft -= bytesRead;
   }
 }
 

@@ -77,7 +77,6 @@ u32 PlatformLoadFile(const char* path, void* memory, u32 memorySize)
   if (!readResult)
   {
     OutputDebugStringA("Was not able to read from a file!\n");
-    return 0;
   }
 
   CloseHandle(fileHandle);
@@ -179,6 +178,7 @@ void Win32SetupRenderingBuffers(u32 width, u32 height)
   *texture = (Texture*)platformMemory;
   (*texture)->width = width;
   (*texture)->height = height;
+  (*texture)->texels = (Color32*)(platformMemory + sizeof(Texture));
   platformMemory += width * height * sizeof(Color32) + sizeof(Texture);
 
   g_platformData.renderBuffer.zBuffer = (float*)platformMemory;

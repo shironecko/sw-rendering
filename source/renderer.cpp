@@ -25,18 +25,30 @@ struct MeshFace
 
 struct Mesh
 {
+  enum
+  {
+    offset_to_serializable_data = sizeof(void*) * 4,
+  };
+
   Vector4* vertices;
-  u32 verticesCount;
   Vector2* uvs;
-  u32 uvsCount;
   Vector4* normales;
-  u32 normalesCount;
   MeshFace* faces;
+
+  u32 verticesCount;
+  u32 uvsCount;
+  u32 normalesCount;
   u32 facesCount;
 };
 
 struct Texture
 {
+  enum
+  {
+    offset_to_serializable_data = sizeof(void*),
+  };
+
+  Color32 *texels;
   u32 width;
   u32 height;
 
@@ -45,8 +57,7 @@ struct Texture
     assert(x < width);
     assert(y < height);
 
-    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
-    return *(pixels + y * width + x);
+    return *(texels + y * width + x);
   }
 
   void SetTexel(u32 x, u32 y, Color32 color)
@@ -54,8 +65,7 @@ struct Texture
     assert(x < width);
     assert(y < height);
 
-    Color32* pixels = (Color32*)((u8*)this + sizeof(Texture));
-    *(pixels + y * width + x) = color;
+    *(texels + y * width + x) = color;
   }
 };
 
