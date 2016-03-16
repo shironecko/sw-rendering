@@ -80,22 +80,22 @@ local bool GameUpdate(
   if (kbState[KbKey::Q])
     return false;
 
-  Matrix4x4 model = Matrix4x4::Identity();
+  Matrix4x4 model = IdentityMatrix();
 
   Vector4 camPos { 0, 0, camDistance, 1.0f };
-  camPos = Matrix4x4::RotationY(camRotation) * camPos;
-  Matrix4x4 view = Matrix4x4::LookAtCamera( 
+  camPos = RotationMatrixY(camRotation) * camPos;
+  Matrix4x4 view = LookAtCameraMatrix( 
       camPos,
       {    0,    0,    0, 1.0f },
       {    0, 1.0f,    0,    0 });
 
-  Matrix4x4 projection = Matrix4x4::Projection(
+  Matrix4x4 projection = ProjectionMatrix(
       90.0f, 
       float(renderTarget->texture->width) / float(renderTarget->texture->height),
       0.1f,
       1000.0f);
 
-  Matrix4x4 screenMatrix = Matrix4x4::ScreenSpace( renderTarget->texture->width, renderTarget->texture->height); 
+  Matrix4x4 screenMatrix = ScreenSpaceMatrix( renderTarget->texture->width, renderTarget->texture->height); 
   Matrix4x4 MVP = projection * view * model;
 
   GameData* gameData = (GameData*)gameMemory;
@@ -111,7 +111,7 @@ local bool GameUpdate(
       gameData->creeperColorTex,
       MVP,
       screenMatrix,
-      (Vector4{ 0.5f, -1, 0.25f, 0 }).Normalized3(),
+      Normalized3(Vector4{ 0.5f, -1, 0.25f, 0 }),
       { 255, 255, 255, 255 },
       gameData->freeMemory,
       gameData->freeMemorySize);

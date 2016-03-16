@@ -1,4 +1,5 @@
 #include "platform_api.h"
+#include "utility.h"
 
 struct Color32
 {
@@ -11,7 +12,7 @@ struct Color32
       u8 r;
       u8 g;
       u8 b;
-      u8 padding;
+      u8 a;
     };
   };
 };
@@ -80,39 +81,14 @@ namespace RenderMode
   };
 }
 
-// TODO: sort this out
-void my_swap(s32& a, s32& b)
-{
-  s32 tmp = a;
-  a = b;
-  b = tmp;
-}
-
-u32 my_abs(s32 x)
-{
-  return x > 0 ? x : -x;
-}
-
-template<typename T>
-T my_min(T a, T b)
-{
-  return a < b ? a : b;
-}
-
-template<typename T>
-T my_max(T a, T b)
-{
-  return a > b ? a : b;
-}
-
 void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, Color32 color, Texture* texture)
 {
-  if (my_abs(x2 - x1) > my_abs(y2 - y1)) // horizontal line
+  if (abs(x2 - x1) > abs(y2 - y1)) // horizontal line
   {
     if (x1 > x2)
     {
-      my_swap(x1, x2);
-      my_swap(y1, y2);
+      swap(&x1, &x2);
+      swap(&y1, &y2);
     }
 
     float y = float(y1);
@@ -127,8 +103,8 @@ void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, Color32 color, Texture* texture)
   {
     if (y1 > y2)
     {
-      my_swap(y1, y2);
-      my_swap(x1, x2);
+      swap(&y1, &y2);
+      swap(&x1, &x2);
     }
 
     float x = float(x1);
@@ -251,10 +227,10 @@ void Render(
 
     if (renderMode & (RenderMode::Shaded | RenderMode::Textured))
     {
-      u32 minX = my_min(x1, my_min(x2, x3));
-      u32 minY = my_min(y1, my_min(y2, y3));
-      u32 maxX = my_max(x1, my_max(x2, x3)) + 1;
-      u32 maxY = my_max(y1, my_max(y2, y3)) + 1;
+      u32 minX = min(x1, min(x2, x3));
+      u32 minY = min(y1, min(y2, y3));
+      u32 maxX = max(x1, max(x2, x3)) + 1;
+      u32 maxY = max(y1, max(y2, y3)) + 1;
 
       Vector4 norms[3];
       float lum[3];
@@ -289,11 +265,11 @@ void Render(
           Vector2 p { float(x), float(y) };
           Vector2 v2 = p - a;
 
-          float d00 = v0.Dot(v0);
-          float d01 = v0.Dot(v1);
-          float d11 = v1.Dot(v1);
-          float d20 = v2.Dot(v0);
-          float d21 = v2.Dot(v1);
+          float d00 = Dot2(v0, v0);
+          float d01 = Dot2(v0, v1);
+          float d11 = Dot2(v1, v1);
+          float d20 = Dot2(v2, v0);
+          float d21 = Dot2(v2, v1);
 
           float denom = d00 * d11 - d01 * d01;
 

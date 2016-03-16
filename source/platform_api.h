@@ -44,6 +44,14 @@ T align(T x, u32 alignment = 16)
   return (T)(((uint_ptr)x + alignment - 1) & (~(alignment - 1)));
 }
 
+#if defined(_MSC_VER)
+  #define PLATFORM_INTRIN_HEADER "intrin.h"
+#elif defined(__GNUC__) || defined(__clang__)
+  #define PLATFORM_INTRIN_HEADER "x86intrin.h"
+#else
+  #error "Unsupported compiler!"
+#endif
+
 global const u32 Kb = 1024;
 global const u32 Mb = 1024 * Kb;
 global const u32 Gb = 1024 * Mb;
