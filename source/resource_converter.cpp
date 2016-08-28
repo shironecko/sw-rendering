@@ -351,7 +351,7 @@ Texture LoadBmp(
 /*
  * Returns number of materials loaded
  */
-void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials, u32 *inOutMaterialsCount, MemPool *pool, bool dryRun)
+void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials, u32 *inOutMaterialsCount, Texture *textures, u32 *outTexturesCount, MemPool *pool, bool dryRun)
 {
     // TODO: figure out something less clunky
     char mtlPath[PATH_LEN];
@@ -364,6 +364,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
     PlatformLoadFile(mtlPath, mtlText, fileSize);
     mtlText[fileSize] = 0;
     u32 matCount = 0;
+    u32 texturesCount = 0;
 
     if (dryRun)
     {
@@ -375,8 +376,6 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
         }
 
         *inOutMaterialsCount = matCount;
-        pool->hiPtr = initialHiPtr;
-        return;
     }
     else
         matCount = *inOutMaterialsCount;
@@ -384,7 +383,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
     s32 materialIdx = -1;
     for (char* text = mtlText; u32(text - mtlText) < fileSize; text += SkipLine(text))
     {
-        if (StringBeginsWith(text, "newmtl "))
+        if (!dryRun && StringBeginsWith(text, "newmtl "))
         {
             ++materialIdx;
             MemorySet(materials + materialIdx, 0, sizeof(*materials));
@@ -393,40 +392,47 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
         }
         else if (StringBeginsWith(text, "map_Kd "))
         {
+            ++texturesCount;
+            if (dryRun)
+                continue;
+
             text += StringLen("map_Kd ");
             char bmpName[PATH_LEN] = { 0 };
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
-            
-            Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
-
-            materials[materialIdx].diffuse = tex;
+            textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
+            materials[materialIdx].diffuse = textures + texturesCount - 1;
         }
         else if (StringBeginsWith(text, "bump "))
         {
+            ++texturesCount;
+            if (dryRun)
+                continue;
+
             text += StringLen("bump ");
             char bmpName[PATH_LEN] = { 0 };
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
-            
-            Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
-
-            materials[materialIdx].bump = tex;
+            textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
+            materials[materialIdx].bump = textures + texturesCount - 1;
         }
         else if (StringBeginsWith(text, "map_Ks "))
         {
+            ++texturesCount;
+            if (dryRun)
+                continue;
+
             text += StringLen("map_Ks ");
             char bmpName[PATH_LEN] = { 0 };
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
-            
-            Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
-
-            materials[materialIdx].specular = tex;
+            textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
+            materials[materialIdx].specular = textures + texturesCount - 1;
         }
     }
 
-    assert(materialIdx == (s32)matCount - 1);
+    assert((materialIdx == (s32)matCount - 1) || dryRun);
+
+    assert(outTexturesCount);
+    *outTexturesCount = texturesCount;
+
     pool->hiPtr = initialHiPtr;
 }
 
@@ -459,6 +465,9 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
   Material *materials = 0;
   u32 materialsCount = 0;
 
+  Texture *textures = 0;
+  u32 texturesCount = 0;
+
   if (!dryRun)
   {
       vertices = (Vector4*)MemPush(pool, inOutModel->verticesCount * sizeof(*vertices));
@@ -467,6 +476,7 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       faceGroups = (FaceGroup*)MemPush(pool, inOutModel->faceGroupsCount * sizeof(*faceGroups));
       faces = (MeshFace*)MemPush(pool, *inOutTotalFaceCount * sizeof(*faces));
       materials = (Material*)MemPush(pool, inOutModel->materialsCount * sizeof(*materials));
+      textures = (Texture*)MemPush(pool, inOutModel->texturesCount * sizeof(*textures));
 
       materialsCount = inOutModel->materialsCount;
   }
@@ -479,7 +489,9 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
         char* localText = text + 7;
         char mtlName[PATH_LEN];
         StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, "\n");
-        LoadMtl(resourcePath, mtlName, materials, &materialsCount, pool, dryRun);
+        u32 tc = 0;
+        LoadMtl(resourcePath, mtlName, materials, &materialsCount, textures + texturesCount, &tc, pool, dryRun);
+        texturesCount += tc;
     }
     else if (StringBeginsWith(text, "usemtl "))
     {
@@ -611,9 +623,8 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       inOutModel->normalesCount = normalesCount;
       inOutModel->faceGroupsCount = faceGroupsCount;
       inOutModel->materialsCount = materialsCount;
+      inOutModel->texturesCount = texturesCount;
       *inOutTotalFaceCount = totalFaceCount;
-
-      /* inOutModel->texturesCount = texturesCount; */
   }
   else
   {
@@ -622,7 +633,9 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       assert(inOutModel->normalesCount == normalesCount);
       assert(inOutModel->faceGroupsCount == faceGroupsCount);
       assert(inOutModel->materialsCount == materialsCount);
+      assert(inOutModel->texturesCount == texturesCount);
       assert(*inOutTotalFaceCount == totalFaceCount);
+
       u32 facesInGroups = 0;
       for (u32 i = 0; i < faceGroupsCount; ++i)
           facesInGroups += faceGroups[i].facesCount;
@@ -634,6 +647,7 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       inOutModel->normales = normales;
       inOutModel->faceGroups = faceGroups;
       inOutModel->materials = materials;
+      inOutModel->textures = textures;
   }
 
   pool->hiPtr = initialHiPtr;
