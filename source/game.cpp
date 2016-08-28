@@ -700,7 +700,7 @@ local bool GameUpdate(
   ClearRenderTarget(renderTarget, { 0, 0, 0, 255 });
   Render(
       renderTarget,
-      RenderMode::Wireframe,
+      RenderMode::Textured,
       &gameData->model,
       MVP,
       screenMatrix,

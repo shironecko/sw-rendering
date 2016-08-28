@@ -235,6 +235,8 @@ void Render(
   {
       MeshFace *faces = culledFaces[faceGroup];
       u32 facesToDraw = culledFacesToDraw[faceGroup];
+
+      Material *material = model->faceGroups[faceGroup].material;
       for (u32 i = 0; i < facesToDraw; ++i)
       {
         MeshFace face = faces[i];
@@ -324,13 +326,13 @@ void Render(
 
                 Color32 texel = { 255, 255, 255, 255 };
 
-                if (renderMode & RenderMode::Textured)
+                if ((renderMode & RenderMode::Textured) && material->diffuse)
                 {
-                  /* float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u; */
-                  /* float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u; */
-                  /* tu *= colorTexture->width; */
-                  /* tv *= colorTexture->height; */
-                  /* texel = colorTexture->GetTexel(u32(tu), u32(tv)); */
+                  float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
+                  float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
+                  tu *= material->diffuse->width;
+                  tv *= material->diffuse->height;
+                  texel = material->diffuse->GetTexel(u32(tu), u32(tv));
                 }
 
                 targetTexture->SetTexel(x, y, Color32 
