@@ -59,9 +59,9 @@ struct Material
 
 struct MeshFace
 {
-  u32 vertices[3];
-  u32 uvs[3];
-  u32 normals[3];
+  u32 v[3];
+  u32 uv[3];
+  u32 n[3];
 };
 
 struct FacesGroup
@@ -71,21 +71,27 @@ struct FacesGroup
     Material *material;
 };
 
-struct Mesh
+struct Model
 {
-  Vector4* vertices;
-  u32 verticesCount;
+    Vector4* vertices;
+    u32 verticesCount;
 
-  Vector2* uvs;
-  u32 uvsCount;
+    Vector2* uvs;
+    u32 uvsCount;
 
-  Vector4* normales;
-  u32 normalesCount;
+    Vector4* normales;
+    u32 normalesCount;
 
-  FacesGroup *facesGroups;
-  u32 facesGroupsCount;
+    FacesGroup *faceGroups;
+    u32 faceGroupsCount;
 
-  char name[RC_NAME_LEN];
+    Material *materials;
+    u32 materialsCount;
+
+    Texture *textures;
+    u32 texturesCount;
+
+    char name[RC_NAME_LEN];
 };
 
 namespace RenderMode
@@ -165,7 +171,7 @@ void ClearRenderTarget(
 void Render(
     RenderTarget* target,
     u32 renderMode,
-    Mesh* mesh,
+    //Mesh* mesh,
     Texture* colorTexture,
     Matrix4x4 MVP,
     Matrix4x4 screenMatrix,

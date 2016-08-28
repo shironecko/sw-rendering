@@ -55,14 +55,26 @@ u32 StringCopy(char *dest, const char *src, u32 max)
     return StringCopyPred(dest, src, max, 0, 0);
 }
 
-u32 StringCat(char *dest, const char *src, u32 dest_len)
+u32 StringCat(char *dest, const char *src, u32 destLen)
 {
     assert(dest);
     assert(src);
     char *p = dest;
     while (*p) { ++p; }
 
-    return p - dest + StringCopy(p, src, dest_len - (p - dest));
+    return p - dest + StringCopy(p, src, destLen - (p - dest));
+}
+
+void StringCombine(char *dest, u32 destLen, const char *a, const char *b)
+{
+    assert(dest);
+    assert(destLen);
+    assert(a);
+    assert(b);
+
+    *dest = 0;
+    StringCat(dest, a, destLen);
+    StringCat(dest, b, destLen);
 }
 
 u32 SkipLine(char* inText)
@@ -293,11 +305,11 @@ struct BitmapColor32
   };
 };
 
-u32 ParseBitmap(
+Texture LoadBmp(
     const char* resourcePath,
     const char* bmpName,
-    Texture *outTexture,
-    MemPool *pool)
+    MemPool *pool,
+    bool dryRun)
 {
   char bmpPath[PATH_LEN];
   *bmpPath = 0;
@@ -319,27 +331,28 @@ u32 ParseBitmap(
 
   infoHeader->height = infoHeader->height >= 0 ? infoHeader->height : -infoHeader->height;
 
-  StringCopy(outTexture->name, bmpName, sizeof(outTexture->name));
-  outTexture->width = infoHeader->width;
-  outTexture->height = infoHeader->height;
+  Texture result = { 0 };
+  StringCopy(result.name, bmpName, sizeof(result.name));
+  result.width = infoHeader->width;
+  result.height = infoHeader->height;
 
   BitmapColor32* rawPixels = (BitmapColor32*)(rawBitmap + fileHeader->offBytes);
-  u32 texelsSize = sizeof(*outTexture->texels) * outTexture->width * outTexture->height;
-  outTexture->texels = (Color32*)MemPush(pool, texelsSize);
-  for (u32 i = 0, n = outTexture->width * outTexture->height; i < n; ++i)
+  u32 texelsSize = sizeof(*result.texels) * result.width * result.height;
+  result.texels = (Color32*)MemPush(pool, texelsSize);
+  for (u32 i = 0, n = result.width * result.height; i < n; ++i)
   {
     BitmapColor32 rawPixel = rawPixels[i];
-    outTexture->texels[i] = { rawPixel.r, rawPixel.g, rawPixel.b, 0 };
+    result.texels[i] = { rawPixel.r, rawPixel.g, rawPixel.b, 0 };
   }
 
   pool->hiPtr = initialHiPtr;
-  return texelsSize;
+  return result;
 }
 
 /*
  * Returns number of materials loaded
  */
-u32 ParseMtl(const char *resourcePath, const char *mtlName, Material *materials, MemPool *pool)
+u32 LoadMtl(const char *resourcePath, const char *mtlName, Material *materials, MemPool *pool, bool dryRun)
 {
     // TODO: figure out something less clunky
     char mtlPath[PATH_LEN];
@@ -381,7 +394,7 @@ u32 ParseMtl(const char *resourcePath, const char *mtlName, Material *materials,
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
             
             Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            ParseBitmap(resourcePath, bmpName, tex, pool);
+            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
 
             materials[materialIdx].diffuse = tex;
         }
@@ -393,7 +406,7 @@ u32 ParseMtl(const char *resourcePath, const char *mtlName, Material *materials,
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
             
             Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            ParseBitmap(resourcePath, bmpName, tex, pool);
+            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
 
             materials[materialIdx].bump = tex;
         }
@@ -405,7 +418,7 @@ u32 ParseMtl(const char *resourcePath, const char *mtlName, Material *materials,
             StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
             
             Texture *tex = (Texture*)MemPush(pool, sizeof(*tex));
-            ParseBitmap(resourcePath, bmpName, tex, pool);
+            *tex = LoadBmp(resourcePath, bmpName, pool, dryRun);
 
             materials[materialIdx].specular = tex;
         }
@@ -415,25 +428,10 @@ u32 ParseMtl(const char *resourcePath, const char *mtlName, Material *materials,
     return matCount;
 }
 
-struct LoadedObj
+void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model *outModel, bool dryRun)
 {
-    Mesh mesh;
-    Material *materials;
-    u32 materialsCount;
-    Texture *textures;
-    u32 texturesCount;
-};
-
-LoadedObj ParseMeshObj(
-    const char* resourcePath,
-    const char* objName,
-    MemPool *pool)
-{
-  // TODO: same thing, clunky
   char objPath[PATH_LEN];
-  *objPath = 0;
-  StringCat(objPath, resourcePath, sizeof(objPath));
-  StringCat(objPath, objName, sizeof(objPath));
+  StringCombine(objPath, sizeof(objPath), resourcePath, objName);
   u32 fileSize = (u32)PlatformGetFileSize(objPath);
   assert(fileSize);
 
@@ -441,56 +439,63 @@ LoadedObj ParseMeshObj(
   char* objText = (char*)MemPushBack(pool, fileSize);
   PlatformLoadFile(objPath, objText, fileSize);
 
-  Vector4 *vertices, *verticesOriginal;
-  vertices = verticesOriginal = (Vector4*)MemPushBack(pool, fileSize);
-  Vector2 *uvs, *uvsOriginal; 
-  uvs = uvsOriginal = (Vector2*)MemPushBack(pool, fileSize);
-  Vector4 *normales, *normalesOriginal; 
-  normales = normalesOriginal = (Vector4*)MemPushBack(pool, fileSize);
-  Material *materials, *materialsOriginal;
-  materials = materialsOriginal = (Material*)MemPushBack(pool, fileSize);
+  Vector4 *vertices = 0;
+  u32 verticesCount = 0;
 
-  const u32 maxFacesGroups = 20;
-  FacesGroup *facesGroups, *facesGroupsOriginal;
-  facesGroups = facesGroupsOriginal = (FacesGroup*)MemPushBack(pool, maxFacesGroups * sizeof(*facesGroups));
-  facesGroups->faces = (MeshFace*)MemPushBack(pool, fileSize);
-  facesGroups->facesCount = 0;
-  facesGroups->material = 0;
+  Vector2 *uvs = 0;
+  u32 uvsCount = 0;
+
+  Vector4 *normales = 0;
+  u32 normalesCount = 0;
+
+  Material *materials = 0;
+  u32 materialsCount = 0;
+
+  FacesGroup *faceGroups = 0;
+  u32 faceGroupsCount = 0;
+  u32 totalFaceCount = 0;
 
   for (char* text = objText; u32(text - objText) < fileSize; text += SkipLine(text))
   {
     if (StringBeginsWith(text, "mtllib "))
     {
-        assert(!(materials - materialsOriginal));
-        char* localText = text + 7;
-        char mtlName[PATH_LEN];
-        StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, "\n");
-        materials += ParseMtl(resourcePath, mtlName, materials, pool);
+        /* assert(!(materials - materialsOriginal)); */
+        /* char* localText = text + 7; */
+        /* char mtlName[PATH_LEN]; */
+        /* StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, "\n"); */
+        /* materials += ParseMtl(resourcePath, mtlName, materials, pool); */
     }
     else if (StringBeginsWith(text, "usemtl "))
     {
-        char* localText = text + StringLen("usemtl ");
-        char materialName[RC_NAME_LEN];
-        StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList, " \n");
-        s32 materialIndex = -1;
-        for (u32 i = 0; i < (u32)(materials - materialsOriginal); ++i)
+        // use material group
+        if (dryRun)
         {
-            if (StringCompare(materialName, materialsOriginal[i].name))
-            {
-                materialIndex = i;
-                break;
-            }
+            ++faceGroupsCount;
+            continue;
         }
 
-        assert(materialIndex != -1);
-        if (facesGroups->facesCount)
-        {
-            ++facesGroups;
-            facesGroups->faces = (MeshFace*)MemPushBack(pool, fileSize);
-            facesGroups->facesCount = 0;
-        }
+        /* char* localText = text + StringLen("usemtl "); */
+        /* char materialName[RC_NAME_LEN]; */
+        /* StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList, " \n"); */
+        /* s32 materialIndex = -1; */
+        /* for (u32 i = 0; i < (u32)(materials - materialsOriginal); ++i) */
+        /* { */
+        /*     if (StringCompare(materialName, materialsOriginal[i].name)) */
+        /*     { */
+        /*         materialIndex = i; */
+        /*         break; */
+        /*     } */
+        /* } */
 
-        facesGroups->material = materialsOriginal + materialIndex;
+        /* assert(materialIndex != -1); */
+        /* if (facesGroups->facesCount) */
+        /* { */
+        /*     ++facesGroups; */
+        /*     facesGroups->faces = (MeshFace*)MemPushBack(pool, fileSize); */
+        /*     facesGroups->facesCount = 0; */
+        /* } */
+
+        /* facesGroups->material = materialsOriginal + materialIndex; */
     }
     else if (StringBeginsWith(text, "f "))
     {
@@ -499,50 +504,64 @@ LoadedObj ParseMeshObj(
       char* localText = text + 2;
       for (u32 i = 0; i < 3; ++i)
       {
-        localText += ParseUInteger(localText, &face.vertices[i]) + 1;
-        --face.vertices[i];
+        localText += ParseUInteger(localText, &face.v[i]) + 1;
+        --face.v[i];
         
-        localText += ParseUInteger(localText, &face.uvs[i]) + 1;
-        --face.uvs[i];
+        localText += ParseUInteger(localText, &face.uv[i]) + 1;
+        --face.uv[i];
 
-        localText += ParseUInteger(localText, &face.normals[i]) + 1;
-        --face.normals[i];
+        localText += ParseUInteger(localText, &face.n[i]) + 1;
+        --face.n[i];
       }
 
-      facesGroups->faces[facesGroups->facesCount++] = face;
+      ++totalFaceCount;
+      if (!dryRun)
+          faceGroups->faces[faceGroups->facesCount++] = face;
 
       if (IsNumber(*localText))
       {
           // triangulate a quad
-          face.vertices[1] = face.vertices[2];
-          face.uvs[1] = face.uvs[2];
-          face.normals[1] = face.normals[2];
-          localText += ParseUInteger(localText, &face.vertices[2]) + 1;
-          --face.vertices[2];
-          localText += ParseUInteger(localText, &face.uvs[2]) + 1;
-          --face.uvs[2];
-          localText += ParseUInteger(localText, &face.normals[2]) + 1;
-          --face.normals[2];
+          face.v[1] = face.v[2];
+          face.uv[1] = face.uv[2];
+          face.n[1] = face.n[2];
+          localText += ParseUInteger(localText, &face.v[2]) + 1;
+          --face.v[2];
+          localText += ParseUInteger(localText, &face.uv[2]) + 1;
+          --face.uv[2];
+          localText += ParseUInteger(localText, &face.n[2]) + 1;
+          --face.n[2];
 
-          facesGroups->faces[facesGroups->facesCount++] = face;
+          ++totalFaceCount;
+          if (!dryRun)
+              faceGroups->faces[faceGroups->facesCount++] = face;
+
       }
-
-      assert(facesGroups->facesCount * sizeof(*facesGroups->faces) <= fileSize);
     }
     else if (StringBeginsWith(text, "v "))
     {
       // vertex
+      if (dryRun)
+      {
+          ++verticesCount;
+          continue;
+      }
+
       Vector4 vertice;
       ParseVector3(text + 2, &vertice);
       vertice.w = 1.0f;
 
       *vertices = vertice;
       ++vertices;
-      assert((vertices - verticesOriginal) * sizeof(*vertices) <= fileSize);
     }
     else if (StringBeginsWith(text, "vt "))
     {
       // uv
+      if (dryRun)
+      {
+          ++uvsCount;
+          continue;
+      }
+
       Vector2 uv;
       char* localText = text + 3;
       for (u32 i = 0; i < 2; ++i)
@@ -552,120 +571,61 @@ LoadedObj ParseMeshObj(
 
       *uvs = uv;
       ++uvs;
-      assert((uvs - uvsOriginal) * sizeof(*uvs) <= fileSize);
     }
     else if (StringBeginsWith(text, "vn "))
     {
       // normal
+      if (dryRun)
+      {
+          ++normalesCount;
+          continue;
+      }
+
       Vector4 normale;
       ParseVector3(text + 3, &normale);
       normale.w = 0.0f;
 
       *normales = normale;
       ++normales;
-      assert((normales - normalesOriginal) * sizeof(*normales) <= fileSize);
     }
   }
 
-  LoadedObj result = { 0 };
-  Mesh *mesh = &result.mesh;
-  StringCopy(mesh->name, objName, sizeof(mesh->name));
-
-  mesh->verticesCount = vertices - verticesOriginal;
-  u32 verticesBytes = mesh->verticesCount * sizeof(*mesh->vertices);
-  mesh->vertices = (Vector4*)MemPush(pool, verticesBytes);
-  MemoryCopy(mesh->vertices, verticesOriginal, verticesBytes);
-
-  mesh->uvsCount = uvs - uvsOriginal;
-  u32 uvsBytes = mesh->uvsCount * sizeof(*mesh->uvs);
-  mesh->uvs = (Vector2*)MemPush(pool, uvsBytes);
-  MemoryCopy(mesh->uvs, uvsOriginal, uvsBytes);
-
-  mesh->normalesCount = normales - normalesOriginal;
-  u32 normalesBytes = mesh->normalesCount * sizeof(*mesh->normales);
-  mesh->normales = (Vector4*)MemPush(pool, normalesBytes);
-  MemoryCopy(mesh->normales, normalesOriginal, normalesBytes);
-
-  mesh->facesGroupsCount = facesGroups - facesGroupsOriginal;
-  u32 facesGroupsBytes = mesh->facesGroupsCount * sizeof(*mesh->facesGroups);
-  mesh->facesGroups = (FacesGroup*)MemPush(pool, facesGroupsBytes);
-  MemoryCopy(mesh->facesGroups, facesGroupsOriginal, facesGroupsBytes);
-
-  result.materialsCount = materials - materialsOriginal;
-  u32 materialsBytes = result.materialsCount * sizeof(*result.materials);
-  result.materials = (Material*)MemPush(pool, materialsBytes);
-  MemoryCopy(result.materials, materialsOriginal, materialsBytes);
-
-  for (u32 i = 0; i < result.materialsCount; ++i)
-  {
-      result.texturesCount += result.materials[i].diffuse ? 1 : 0;
-      result.texturesCount += result.materials[i].bump ? 1 : 0;
-      result.texturesCount += result.materials[i].specular ? 1 : 0;
-  }
-
-  u32 texturesBytes = result.texturesCount * sizeof(*result.textures);
-  result.textures = (Texture*)MemPush(pool, texturesBytes);
-  Texture *t = result.textures;
-  for (u32 i = 0; i < result.materialsCount; ++i)
-  {
-      if (result.materials[i].diffuse) { MemoryCopy(t++, result.materials[i].diffuse, sizeof(*t)); }
-      if (result.materials[i].bump) { MemoryCopy(t++, result.materials[i].bump, sizeof(*t)); }
-      if (result.materials[i].specular) { MemoryCopy(t++, result.materials[i].specular, sizeof(*t)); }
-  }
-
+  outModel->verticesCount = verticesCount;
+  outModel->uvsCount = uvsCount;
+  outModel->normalesCount = normalesCount;
+  outModel->faceGroupsCount = faceGroupsCount;
+  outModel->materialsCount = materialsCount;
+  /* outModel->texturesCount = texturesCount; */
   pool->hiPtr = initialHiPtr;
-  return result;
 }
 
-/* bool BmpToTex(const char* bmpPath, const char* texPath, void* memory, u32 memorySize) */
-/* { */
-/*     Texture* texture = (Texture*)memory; */
-/*     u32 textureSize = ParseBitmap( */
-/*         bmpPath, */
-/*         (u8*)memory, */
-/*         memorySize); */
+void LoadModel(const char* resourcePath, const char* objName, MemPool *pool, Model *outModel)
+{
+    assert(resourcePath);
+    assert(objName);
+    assert(pool);
+    assert(outModel);
 
-/*     bool writeResult = PlatformWriteFile( */
-/*         texPath, */
-/*         (u8*)texture + Texture::offset_to_serializable_data, */
-/*         textureSize - Texture::offset_to_serializable_data); */
+    // a dry run to collect the number of vertices, size of the textures etc.
+    MemPool initialPool = *pool;
+    LoadObj(resourcePath, objName, pool, outModel, true);
+    assert(MemoryEqual(&initialPool, pool, sizeof(initialPool)));
 
-/*     return writeResult; */
-/* } */
+    // an actual process of loading a model
+    LoadObj(resourcePath, objName, pool, outModel, false);
+    assert(initialPool.hiPtr == pool->hiPtr);
+}
 
 local void GameInitialize(void* gameMemory, u32 gameMemorySize)
 {
   MemPool pool = NewMemPool(gameMemory, gameMemorySize);
 
   {
-    LoadedObj obj = ParseMeshObj(
-        "./data/source/",
-        "muro.obj",
-        &pool);
+    Model model = { 0 };
+    LoadModel("./data/source/", "muro.obj", &pool, &model);
 
     char dummy = 0;
 
-    /* bool writeResult = PlatformWriteFile( */
-    /*     "./data/cooked/muro.mesh", */
-    /*     (u8*)mesh + Mesh::offset_to_serializable_data, */
-    /*     meshSize - Mesh::offset_to_serializable_data); */
-
-    /* assert(writeResult); */
-  }
-
-  {
-    /* bool result = BmpToTex("./data/source/muro_body_dm.bmp", "./data/cooked/muro_body_dm.tex", memory, gameMemorySize); */
-    /* assert(result); */
-    /* result = BmpToTex("./data/source/muro_body_nm.bmp", "./data/cooked/muro_body_nm.tex", memory, gameMemorySize); */
-    /* assert(result); */
-    /* result = BmpToTex("./data/source/muro_body_sm.bmp", "./data/cooked/muro_body_sm.tex", memory, gameMemorySize); */
-    /* assert(result); */
-    /* result = BmpToTex("./data/source/muro_head_dm.bmp", "./data/cooked/muro_head_dm.tex", memory, gameMemorySize); */
-    /* assert(result); */
-    /* result = BmpToTex("./data/source/muro_head_nm.bmp", "./data/cooked/muro_head_nm.tex", memory, gameMemorySize); */
-    /* assert(result); */
-    /* result = BmpToTex("./data/source/muro_head_sm.bmp", "./data/cooked/muro_head_sm.tex", memory, gameMemorySize); */
-    /* assert(result); */
   }
 }
 
