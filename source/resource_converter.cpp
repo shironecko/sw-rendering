@@ -488,32 +488,38 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
         if (dryRun)
             continue;
 
-        /* char* localText = text + StringLen("usemtl "); */
-        /* char materialName[RC_NAME_LEN]; */
-        /* StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList, " \n"); */
-        /* s32 materialIndex = -1; */
-        /* for (u32 i = 0; i < (u32)(materials - materialsOriginal); ++i) */
-        /* { */
-        /*     if (StringCompare(materialName, materialsOriginal[i].name)) */
-        /*     { */
-        /*         materialIndex = i; */
-        /*         break; */
-        /*     } */
-        /* } */
+        char* localText = text + StringLen("usemtl ");
+        char materialName[RC_NAME_LEN];
+        StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList, " \n");
+        s32 materialIndex = -1;
+        for (u32 i = 0; i < materialsCount; ++i)
+        {
+            if (StringCompare(materialName, materials[i].name))
+            {
+                materialIndex = i;
+                break;
+            }
+        }
 
-        /* assert(materialIndex != -1); */
-        /* if (facesGroups->facesCount) */
-        /* { */
-        /*     ++facesGroups; */
-        /*     facesGroups->faces = (MeshFace*)MemPushBack(pool, fileSize); */
-        /*     facesGroups->facesCount = 0; */
-        /* } */
-
-        /* facesGroups->material = materialsOriginal + materialIndex; */
+        assert(materialIndex != -1);
+        faceGroups[faceGroupsCount - 1].faces = faces + totalFaceCount;
+        faceGroups[faceGroupsCount - 1].facesCount = 0;
+        faceGroups[faceGroupsCount - 1].material = materials + materialIndex;
     }
     else if (StringBeginsWith(text, "f "))
     {
       // face
+      if (!faceGroupsCount)
+      {
+          ++faceGroupsCount;
+          if (!dryRun)
+          {
+              faceGroups->faces = faces;
+              faceGroups->facesCount = 0;
+              faceGroups->material = 0;
+          }
+      }
+
       MeshFace face;
       char* localText = text + 2;
       for (u32 i = 0; i < 3; ++i)
@@ -529,7 +535,10 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       }
 
       if (!dryRun)
+      {
           faces[totalFaceCount] = face;
+          ++faceGroups[faceGroupsCount - 1].facesCount;
+      }
 
       ++totalFaceCount;
 
@@ -547,7 +556,10 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
           --face.n[2];
 
           if (!dryRun)
+          {
               faces[totalFaceCount] = face;
+              ++faceGroups[faceGroupsCount - 1].facesCount;
+          }
 
           ++totalFaceCount;
       }
@@ -611,6 +623,11 @@ void LoadObj(const char* resourcePath, const char* objName, MemPool *pool, Model
       assert(inOutModel->faceGroupsCount == faceGroupsCount);
       assert(inOutModel->materialsCount == materialsCount);
       assert(*inOutTotalFaceCount == totalFaceCount);
+      u32 facesInGroups = 0;
+      for (u32 i = 0; i < faceGroupsCount; ++i)
+          facesInGroups += faceGroups[i].facesCount;
+
+      assert(facesInGroups == totalFaceCount);
 
       inOutModel->vertices = vertices;
       inOutModel->uvs = uvs;
