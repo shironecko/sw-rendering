@@ -64,7 +64,7 @@ struct MeshFace
   u32 n[3];
 };
 
-struct FacesGroup
+struct FaceGroup
 {
     MeshFace *faces;
     u32 facesCount;
@@ -82,7 +82,7 @@ struct Model
     Vector4* normales;
     u32 normalesCount;
 
-    FacesGroup *faceGroups;
+    FaceGroup *faceGroups;
     u32 faceGroupsCount;
 
     Material *materials;
