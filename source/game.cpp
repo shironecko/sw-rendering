@@ -5,8 +5,8 @@
 
 struct GameData
 {
-  Mesh* creeperMesh;
-  Texture* creeperColorTex;
+  Mesh* renderMesh;
+  Texture* renderMeshDT;
   void* freeMemory;
   u32 freeMemorySize;
 };
@@ -21,36 +21,36 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
   memory = align(memory);
 
   {
-    gameData->creeperMesh = (Mesh*)memory;
+    gameData->renderMesh = (Mesh*)memory;
     memory += Mesh::offset_to_serializable_data;
-    u32 bytesRead = PlatformLoadFile("./data/cooked/meshes/creeper.mesh", memory, memoryEnd - memory);
+    u32 bytesRead = PlatformLoadFile("./data/cooked/meshes/muro.mesh", memory, memoryEnd - memory);
     assert(bytesRead);
     u8* meshMemory = (u8*)memory;
     memory += bytesRead;
     memory = align(memory);
 
     meshMemory += sizeof(Mesh) - Mesh::offset_to_serializable_data;
-    gameData->creeperMesh->vertices = (Vector4*)meshMemory;
-    meshMemory += gameData->creeperMesh->verticesCount * sizeof(Vector4);
+    gameData->renderMesh->vertices = (Vector4*)meshMemory;
+    meshMemory += gameData->renderMesh->verticesCount * sizeof(Vector4);
 
-    gameData->creeperMesh->uvs = (Vector2*)meshMemory;
-    meshMemory += gameData->creeperMesh->uvsCount * sizeof(Vector2);
+    gameData->renderMesh->uvs = (Vector2*)meshMemory;
+    meshMemory += gameData->renderMesh->uvsCount * sizeof(Vector2);
 
-    gameData->creeperMesh->normales = (Vector4*)meshMemory;
-    meshMemory += gameData->creeperMesh->normalesCount * sizeof(Vector4);
+    gameData->renderMesh->normales = (Vector4*)meshMemory;
+    meshMemory += gameData->renderMesh->normalesCount * sizeof(Vector4);
 
-    gameData->creeperMesh->faces = (MeshFace*)meshMemory;
-    meshMemory += gameData->creeperMesh->facesCount * sizeof(MeshFace);
+    gameData->renderMesh->faces = (MeshFace*)meshMemory;
+    meshMemory += gameData->renderMesh->facesCount * sizeof(MeshFace);
   }
 
   {
-    gameData->creeperColorTex = (Texture*)memory;
-    gameData->creeperColorTex->texels = (Color32*)memory + sizeof(Texture);
-    memory += Texture::offset_to_serializable_data;
-    u32 bytesRead = PlatformLoadFile("./data/cooked/textures/creeper_color.tex", memory, memoryEnd - memory);
-    assert(bytesRead);
-    memory += bytesRead;
-    memory = align(memory);
+    /* gameData->renderMeshDT = (Texture*)memory; */
+    /* gameData->renderMeshDT->texels = (Color32*)memory + sizeof(Texture); */
+    /* memory += Texture::offset_to_serializable_data; */
+    /* u32 bytesRead = PlatformLoadFile("./data/cooked/textures/creeper_color.tex", memory, memoryEnd - memory); */
+    /* assert(bytesRead); */
+    /* memory += bytesRead; */
+    /* memory = align(memory); */
   }
 
   gameData->freeMemory = memory;
@@ -80,7 +80,8 @@ local bool GameUpdate(
   if (kbState[KbKey::Q])
     return false;
 
-  Matrix4x4 model = IdentityMatrix();
+  float scale = 0.05f;
+  Matrix4x4 model = TranslationMatrix(0, -5.0f, 0) * ScaleMatrix(scale, scale, scale);
 
   Vector4 camPos { 0, 0, camDistance, 1.0f };
   camPos = RotationMatrixY(camRotation) * camPos;
@@ -106,9 +107,9 @@ local bool GameUpdate(
 
   Render(
       renderTarget,
-      RenderMode::Textured | RenderMode::Shaded,
-      gameData->creeperMesh,
-      gameData->creeperColorTex,
+      RenderMode::Shaded,
+      gameData->renderMesh,
+      gameData->renderMeshDT,
       MVP,
       screenMatrix,
       Normalized3(Vector4{ 0.5f, -1, 0.25f, 0 }),

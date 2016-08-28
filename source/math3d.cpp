@@ -200,14 +200,6 @@ Matrix4x4 operator * (Matrix4x4 a, Matrix4x4 b)
   return result;
 }
 
-/* Matrix4x4 InverseMatrix() */
-/* { */
-/*   Matrix4x4 result = *this; */
-/*   PIII_Inverse_4x4(&result(0, 0)); */
-
-/*   return result; */
-/* } */
-
 static Matrix4x4 IdentityMatrix()
 {
   return Matrix4x4
@@ -218,6 +210,28 @@ static Matrix4x4 IdentityMatrix()
        0,    0,    0, 1.0f
   };
 }
+
+static Matrix4x4 ScaleMatrix(float scaleX, float scaleY, float scaleZ)
+{
+    return Matrix4x4
+    {
+        scaleX, 0, 0, 0,
+        0, scaleY, 0, 0,
+        0, 0, scaleZ, 0,
+        0, 0, 0, 1
+    };
+};
+
+static Matrix4x4 TranslationMatrix(float x, float y, float z)
+{
+    return Matrix4x4
+    {
+        1, 0, 0, x,
+        0, 1, 0, y,
+        0, 0, 1, z,
+        0, 0, 0, 1
+    };
+};
 
 static Matrix4x4 RotationMatrixY(float angle)
 {
