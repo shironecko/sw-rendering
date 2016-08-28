@@ -1,7 +1,6 @@
 #pragma once
 
 #include "platform_api.h"
-#include "utility.h"
 #include "math.h"
 #include PLATFORM_INTRIN_HEADER
 
