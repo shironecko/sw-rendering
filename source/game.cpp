@@ -650,7 +650,7 @@ local void GameInitialize(void* gameMemory, u32 gameMemorySize)
     // TODO: add alignment to MemPool
     gameData->pool = NewMemPool((u8*)gameMemory + sizeof(*gameData), gameMemorySize - sizeof(*gameData));
 
-    LoadModel("./data/source/", "muro.obj", &gameData->pool, &gameData->model);
+    LoadModel("./assets/", "muro.obj", &gameData->pool, &gameData->model);
 }
 
 local bool GameUpdate(
@@ -700,7 +700,7 @@ local bool GameUpdate(
   ClearRenderTarget(renderTarget, { 0, 0, 0, 255 });
   Render(
       renderTarget,
-      RenderMode::Textured,
+      RenderMode::Shaded | RenderMode::Textured,
       &gameData->model,
       MVP,
       screenMatrix,

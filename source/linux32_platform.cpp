@@ -1,12 +1,5 @@
 #include "platform_api.h"
-
-#ifdef GAME_PROJECT
 #include "game.cpp"
-#elif defined(RESOURCE_CONVERTER_PROJECT)
-#include "resource_converter.cpp"
-#else
-#error "You did not specified project type!"
-#endif
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
