@@ -692,8 +692,7 @@ local bool GameUpdate(
       0.1f,
       1000.0f);
 
-  Matrix4x4 screenMatrix = ScreenSpaceMatrix( renderTarget->texture->width, renderTarget->texture->height); 
-  Matrix4x4 MVP = projection * view * model;
+  Matrix4x4 screenMatrix = ScreenSpaceMatrix(renderTarget->texture->width, renderTarget->texture->height); 
 
   GameData* gameData = (GameData*)gameMemory;
 
@@ -702,10 +701,13 @@ local bool GameUpdate(
       renderTarget,
       RenderMode::Shaded | RenderMode::Textured,
       &gameData->model,
-      MVP,
+      camPos,
+      view * model,
+      projection,
       screenMatrix,
-      Normalized3(Vector4{ 0.5f, -1, 0.25f, 0 }),
+      Normalized3(Vector4{ 1, 1, 1, 0 }),
       { 255, 255, 255, 255 },
+      0.05f,
       &gameData->pool);
 
   return true;

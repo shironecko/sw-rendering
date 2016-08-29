@@ -171,10 +171,13 @@ void Render(
     RenderTarget* target,
     u32 renderMode,
     Model *model,
-    Matrix4x4 MVP,
-    Matrix4x4 screenMatrix,
+    Vector4 cameraPosition,
+    Matrix4x4 modelM,
+    Matrix4x4 viewProjectionM,
+    Matrix4x4 screenM,
     Vector4 sunlightDirection,
     Color32 sunlightColor,
+    float ambientIntencity,
     MemPool *pool)
 {
   Texture* targetTexture = target->texture;
@@ -182,9 +185,12 @@ void Render(
 
   u8* initialHiPtr = pool->hiPtr;
   Vector4* vertices = (Vector4*)MemPushBack(pool, model->verticesCount * sizeof(*vertices));
+  Vector4* camDirections = (Vector4*)MemPushBack(pool, model->verticesCount * sizeof(*camDirections));
   for (u32 i = 0, e = model->verticesCount; i < e; ++i)
   {
-    vertices[i] = MVP * model->vertices[i];
+    Vector4 v = modelM * model->vertices[i];
+    camDirections[i] = Normalized3(v - cameraPosition);
+    vertices[i] = viewProjectionM * v;
   }
 
   MeshFace **culledFaces = (MeshFace**)MemPushBack(pool, model->faceGroupsCount * sizeof(*culledFaces));
@@ -227,7 +233,7 @@ void Render(
   {
     Vector4 vertex = vertices[i];
     vertex = vertex / vertex.w;
-    vertex = screenMatrix * vertex;
+    vertex = screenM * vertex;
     vertices[i] = vertex;
   }
 
@@ -269,9 +275,26 @@ void Render(
             norms[0] = model->normales[face.n[0]];
             norms[1] = model->normales[face.n[1]];
             norms[2] = model->normales[face.n[2]];
-            lum[0] = Dot3(norms[0], sunlightDirection);
-            lum[1] = Dot3(norms[1], sunlightDirection);
-            lum[2] = Dot3(norms[2], sunlightDirection);
+
+            float diffuse[3];
+            for (u32 j = 0; j < 3; ++j)
+               diffuse[j] = Clamp(Dot3(norms[j], sunlightDirection), 0, 1.0f);
+
+            Vector4 L = -sunlightDirection;
+            float specular[3] = { 0 };
+            for (u32 j = 0; j < 3; ++j)
+            {
+                if (diffuse[j])
+                {
+                    Vector4 V = camDirections[face.v[j]];
+                    Vector4 H = Normalized3(V + L);
+                    specular[j] = Pow(Dot3(H, norms[j]), 32);
+                }
+            }
+
+            for (u32 j = 0; j < 3; ++j)
+                lum[j] = ambientIntencity + diffuse[j] + specular[j];
+
           }
 
           Vector2 faceUvs[3];
@@ -318,10 +341,6 @@ void Render(
                 if (renderMode & RenderMode::Shaded)
                 {
                   l = lum[1] * v + lum[2] * w + lum[0] * u;
-                  if (l < 0)
-                    l = 0;
-                  else if (l > 1.0f)
-                    l = 1.0f;
                 }
 
                 Color32 texel = { 255, 255, 255, 255 };
@@ -335,13 +354,18 @@ void Render(
                   texel = material->diffuse->GetTexel(u32(tu), u32(tv));
                 }
 
+#define Illuminate(c, l) (Color32{ u8(Clamp(c.r * l, 0, 255.0f)), u8(Clamp(c.g * l, 0, 255.0f)), u8(Clamp(c.b * l, 0, 255.0f)), 255 })
+#define MultiplyColorChannel(a, b) (u8((a / 255.0f) * (b / 255.0f) * 255.0f))
+                Color32 light = Illuminate(sunlightColor, l);
                 targetTexture->SetTexel(x, y, Color32 
                 { 
-                  u8(texel.r * l),
-                  u8(texel.g * l),
-                  u8(texel.b * l),
+                  MultiplyColorChannel(texel.r, light.r),
+                  MultiplyColorChannel(texel.g, light.g),
+                  MultiplyColorChannel(texel.b, light.b),
                   255
                 });
+#undef Illuminate
+#undef MultiplyColorChannel
 
                 zBuffer[zIndex] = z;
               }

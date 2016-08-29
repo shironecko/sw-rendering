@@ -8,15 +8,27 @@
 
 const float PI = float(3.14159265359);
 
-/* float sqrt(float x) */
-/* { */
-/*   __m128 reg_x = _mm_load_ss(&x); */
-/*   reg_x = _mm_sqrt_ss(reg_x); */
-/*   float result; */
-/*   _mm_store_ss(&result, reg_x); */
+float Clamp(float val, float min, float max)
+{
+    if (val > max)
+        return max;
+    else if (val < min)
+        return min;
 
-/*   return result; */
-/* } */
+    return val;
+}
+
+inline float Pow(float val, s32 pow)
+{
+    if (!pow)
+        return 0;
+
+    float result = 1.0f;
+    for (s32 i = 0; i < pow; ++i)
+        result *= val;
+
+    return result;
+}
 
 //******************** Vector2 ********************//
 
