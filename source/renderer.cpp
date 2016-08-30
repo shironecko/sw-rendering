@@ -4,7 +4,7 @@ struct Color32
 {
   union
   {
-    u8 components[4];
+    u8 c[4];
 
     struct
     {
@@ -354,19 +354,13 @@ void Render(
                   texel = material->diffuse->GetTexel(u32(tu), u32(tv));
                 }
 
-#define Illuminate(c, l) (Color32{ u8(Clamp(c.r * l, 0, 255.0f)), u8(Clamp(c.g * l, 0, 255.0f)), u8(Clamp(c.b * l, 0, 255.0f)), 255 })
-#define MultiplyColorChannel(a, b) (u8((a / 255.0f) * (b / 255.0f) * 255.0f))
-                Color32 light = Illuminate(sunlightColor, l);
-                targetTexture->SetTexel(x, y, Color32 
-                { 
-                  MultiplyColorChannel(texel.r, light.r),
-                  MultiplyColorChannel(texel.g, light.g),
-                  MultiplyColorChannel(texel.b, light.b),
-                  255
-                });
-#undef Illuminate
-#undef MultiplyColorChannel
-
+                Color32 fragmentColor = { 0 };
+                for (u32 j = 0; j < 3; ++j)
+                {
+                    float cl = sunlightColor.c[j] * l / 255.0f;
+                    fragmentColor.c[j] = u8(Clamp(texel.c[j] * cl, 0, 255.0f));
+                }
+                targetTexture->SetTexel(x, y, fragmentColor);
                 zBuffer[zIndex] = z;
               }
             }
