@@ -673,7 +673,7 @@ local bool GameUpdate(
     camRotation -= camRotationSpeed * deltaTime;
   if (kbState[KbKey::D])
     camRotation += camRotationSpeed * deltaTime;
-  if (kbState[KbKey::Q])
+  if (kbState[KbKey::Escape])
     return false;
 
   float scale = 0.05f;
