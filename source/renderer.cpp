@@ -1,397 +1,335 @@
 #include "platform_api.h"
 
-struct Color32
-{
-  union
-  {
-    u8 c[4];
+struct Color32 {
+	union {
+		u8 c[4];
 
-    struct
-    {
-      u8 r;
-      u8 g;
-      u8 b;
-      u8 a;
-    };
-  };
+		struct {
+			u8 r;
+			u8 g;
+			u8 b;
+			u8 a;
+		};
+	};
 };
 
-enum
-{
-    RC_NAME_LEN = 32 + 1,
+enum {
+	RC_NAME_LEN = 32 + 1,
 };
 
-struct Texture
-{
-  Color32 *texels;
-  u32 width;
-  u32 height;
+struct Texture {
+	Color32 *texels;
+	u32 width;
+	u32 height;
 
-  char name[RC_NAME_LEN];
+	char name[RC_NAME_LEN];
 
-  Color32 GetTexel(u32 x, u32 y)
-  {
-    assert(x < width);
-    assert(y < height);
+	Color32 GetTexel(u32 x, u32 y) {
+		assert(x < width);
+		assert(y < height);
 
-    return *(texels + y * width + x);
-  }
+		return *(texels + y * width + x);
+	}
 
-  void SetTexel(u32 x, u32 y, Color32 color)
-  {
-    assert(x < width);
-    assert(y < height);
+	void SetTexel(u32 x, u32 y, Color32 color) {
+		assert(x < width);
+		assert(y < height);
 
-    *(texels + y * width + x) = color;
-  }
+		*(texels + y * width + x) = color;
+	}
 };
 
+struct Material {
+	Texture *diffuse;
+	Texture *bump;
+	Texture *specular;
 
-struct Material
-{
-    Texture* diffuse;
-    Texture* bump;
-    Texture* specular;
-
-    char name[RC_NAME_LEN];
+	char name[RC_NAME_LEN];
 };
 
-struct MeshFace
-{
-  u32 v[3];
-  u32 uv[3];
-  u32 n[3];
+struct MeshFace {
+	u32 v[3];
+	u32 uv[3];
+	u32 n[3];
 };
 
-struct FaceGroup
-{
-    MeshFace *faces;
-    u32 facesCount;
-    Material *material;
+struct FaceGroup {
+	MeshFace *faces;
+	u32 facesCount;
+	Material *material;
 };
 
-struct Model
-{
-    Vector4* vertices;
-    u32 verticesCount;
+struct Model {
+	Vector4 *vertices;
+	u32 verticesCount;
 
-    Vector2* uvs;
-    u32 uvsCount;
+	Vector2 *uvs;
+	u32 uvsCount;
 
-    Vector4* normales;
-    u32 normalesCount;
+	Vector4 *normales;
+	u32 normalesCount;
 
-    FaceGroup *faceGroups;
-    u32 faceGroupsCount;
+	FaceGroup *faceGroups;
+	u32 faceGroupsCount;
 
-    Material *materials;
-    u32 materialsCount;
+	Material *materials;
+	u32 materialsCount;
 
-    Texture *textures;
-    u32 texturesCount;
+	Texture *textures;
+	u32 texturesCount;
 
-    char name[RC_NAME_LEN];
+	char name[RC_NAME_LEN];
 };
 
-namespace RenderMode
-{
-  enum
-  {
-    BackfaceCulling = 1 << 0,
-    Shaded          = 1 << 1,
-    Textured        = 1 << 2,
-    Wireframe       = 1 << 3,
-  };
+namespace RenderMode {
+enum {
+	BackfaceCulling = 1 << 0,
+	Shaded = 1 << 1,
+	Textured = 1 << 2,
+	Wireframe = 1 << 3,
+};
 }
 
-void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, Color32 color, Texture* texture)
-{
-  if (abs(x2 - x1) > abs(y2 - y1)) // horizontal line
-  {
-    if (x1 > x2)
-    {
-      swap(&x1, &x2);
-      swap(&y1, &y2);
-    }
+void DrawLine(s32 x1, s32 y1, s32 x2, s32 y2, Color32 color, Texture *texture) {
+	if (abs(x2 - x1) > abs(y2 - y1)) // horizontal line
+	{
+		if (x1 > x2) {
+			swap(&x1, &x2);
+			swap(&y1, &y2);
+		}
 
-    float y = float(y1);
-    float step = float(y2 - y1) / float(x2 - x1);
-    for (s32 x = x1; x <= x2; ++x)
-    {
-      texture->SetTexel(x, u32(y), color);
-      y += step;
-    }
-  }
-  else // vertical line
-  {
-    if (y1 > y2)
-    {
-      swap(&y1, &y2);
-      swap(&x1, &x2);
-    }
+		float y = float(y1);
+		float step = float(y2 - y1) / float(x2 - x1);
+		for (s32 x = x1; x <= x2; ++x) {
+			texture->SetTexel(x, u32(y), color);
+			y += step;
+		}
+	} else // vertical line
+	{
+		if (y1 > y2) {
+			swap(&y1, &y2);
+			swap(&x1, &x2);
+		}
 
-    float x = float(x1);
-    float step = float(x2 - x1) / float(y2 - y1);
-    for (s32 y = y1; y <= y2; ++y)
-    {
-      texture->SetTexel(u32(x), y, color);
-      x += step;
-    }
-  }
+		float x = float(x1);
+		float step = float(x2 - x1) / float(y2 - y1);
+		for (s32 y = y1; y <= y2; ++y) {
+			texture->SetTexel(u32(x), y, color);
+			x += step;
+		}
+	}
 }
 
-struct RenderTarget
-{
-  Texture* texture;
-  float* zBuffer;
+struct RenderTarget {
+	Texture *texture;
+	float *zBuffer;
 };
 
-void ClearRenderTarget(
-    RenderTarget* target,
-    Color32 clearColor)
-{
-  Texture* targetTexture = target->texture;
-  float* zBuffer = target->zBuffer;
+void ClearRenderTarget(RenderTarget *target, Color32 clearColor) {
+	Texture *targetTexture = target->texture;
+	float *zBuffer = target->zBuffer;
 
-  for (u32 y = 0; y < targetTexture->height; ++y)
-  {
-    for (u32 x = 0; x < targetTexture->width; ++x)
-    {
-      targetTexture->SetTexel(x, y, clearColor);
-    }
-  }
+	for (u32 y = 0; y < targetTexture->height; ++y) {
+		for (u32 x = 0; x < targetTexture->width; ++x) {
+			targetTexture->SetTexel(x, y, clearColor);
+		}
+	}
 
-  float infinity = 100.0f;
-  for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
-    zBuffer[i] = infinity;
+	float infinity = 100.0f;
+	for (u32 i = 0, n = targetTexture->width * targetTexture->height; i < n; ++i)
+		zBuffer[i] = infinity;
 }
 
 // TODO: sort this out
-void Render(
-    RenderTarget* target,
-    u32 renderMode,
-    Model *model,
-    Vector4 cameraPosition,
-    Matrix4x4 modelM,
-    Matrix4x4 viewProjectionM,
-    Matrix4x4 screenM,
-    Vector4 sunlightDirection,
-    Color32 sunlightColor,
-    float ambientIntencity,
-    MemPool *pool)
-{
-  Texture* targetTexture = target->texture;
-  float* zBuffer = target->zBuffer;
+void Render(RenderTarget *target, u32 renderMode, Model *model, Vector4 cameraPosition,
+            Matrix4x4 modelM, Matrix4x4 viewProjectionM, Matrix4x4 screenM,
+            Vector4 sunlightDirection, Color32 sunlightColor, float ambientIntencity,
+            MemPool *pool) {
+	Texture *targetTexture = target->texture;
+	float *zBuffer = target->zBuffer;
 
-  u8* initialHiPtr = pool->hiPtr;
-  Vector4* vertices = (Vector4*)MemPushBack(pool, model->verticesCount * sizeof(*vertices));
-  Vector4* camDirections = (Vector4*)MemPushBack(pool, model->verticesCount * sizeof(*camDirections));
-  for (u32 i = 0, e = model->verticesCount; i < e; ++i)
-  {
-    Vector4 v = modelM * model->vertices[i];
-    camDirections[i] = Normalized3(v - cameraPosition);
-    vertices[i] = viewProjectionM * v;
-  }
+	u8 *initialHiPtr = pool->hiPtr;
+	Vector4 *vertices = (Vector4 *)MemPushBack(pool, model->verticesCount * sizeof(*vertices));
+	Vector4 *camDirections =
+	    (Vector4 *)MemPushBack(pool, model->verticesCount * sizeof(*camDirections));
+	for (u32 i = 0, e = model->verticesCount; i < e; ++i) {
+		Vector4 v = modelM * model->vertices[i];
+		camDirections[i] = Normalized3(v - cameraPosition);
+		vertices[i] = viewProjectionM * v;
+	}
 
-  MeshFace **culledFaces = (MeshFace**)MemPushBack(pool, model->faceGroupsCount * sizeof(*culledFaces));
-  u32 *culledFacesToDraw = (u32*)MemPushBack(pool, model->faceGroupsCount * sizeof(*culledFacesToDraw));
+	MeshFace **culledFaces =
+	    (MeshFace **)MemPushBack(pool, model->faceGroupsCount * sizeof(*culledFaces));
+	u32 *culledFacesToDraw =
+	    (u32 *)MemPushBack(pool, model->faceGroupsCount * sizeof(*culledFacesToDraw));
 
-  for (u32 faceGroup = 0; faceGroup < model->faceGroupsCount; ++faceGroup)
-  {
-      MeshFace *srcFaces = model->faceGroups[faceGroup].faces;
-      u32 facesCount = model->faceGroups[faceGroup].facesCount;
-      MeshFace *faces = culledFaces[faceGroup] = (MeshFace*)MemPushBack(pool, facesCount * sizeof(*faces));
-      u32 facesToDraw = 0;
-      for (u32 i = 0; i < facesCount; ++i)
-      {
-        MeshFace face = srcFaces[i];
+	for (u32 faceGroup = 0; faceGroup < model->faceGroupsCount; ++faceGroup) {
+		MeshFace *srcFaces = model->faceGroups[faceGroup].faces;
+		u32 facesCount = model->faceGroups[faceGroup].facesCount;
+		MeshFace *faces = culledFaces[faceGroup] =
+		    (MeshFace *)MemPushBack(pool, facesCount * sizeof(*faces));
+		u32 facesToDraw = 0;
+		for (u32 i = 0; i < facesCount; ++i) {
+			MeshFace face = srcFaces[i];
 
-        bool isInsideFrustrum = true;
-        for (u32 j = 0; j < 3; ++j)
-        {
-          Vector4 vertex = vertices[face.v[j]];
+			bool isInsideFrustrum = true;
+			for (u32 j = 0; j < 3; ++j) {
+				Vector4 vertex = vertices[face.v[j]];
 
-          if (vertex.x > vertex.w || vertex.x < -vertex.w ||
-              vertex.y > vertex.w || vertex.y < -vertex.w ||
-              vertex.z > vertex.w || vertex.z < -vertex.w)
-          {
-            isInsideFrustrum = false;
-            break;
-          }
-        }
+				if (vertex.x > vertex.w || vertex.x < -vertex.w || vertex.y > vertex.w ||
+				    vertex.y < -vertex.w || vertex.z > vertex.w || vertex.z < -vertex.w) {
+					isInsideFrustrum = false;
+					break;
+				}
+			}
 
-        if (isInsideFrustrum)
-          faces[facesToDraw++] = face;
+			if (isInsideFrustrum) faces[facesToDraw++] = face;
+		}
 
-      }
+		culledFacesToDraw[faceGroup] = facesToDraw;
+	}
 
-      culledFacesToDraw[faceGroup] = facesToDraw;
-  }
+	// TODO: avoid computing irrelevant data (?)
+	for (u32 i = 0; i < model->verticesCount; ++i) {
+		Vector4 vertex = vertices[i];
+		vertex = vertex / vertex.w;
+		vertex = screenM * vertex;
+		vertices[i] = vertex;
+	}
 
-  // TODO: avoid computing irrelevant data (?)
-  for (u32 i = 0; i < model->verticesCount; ++i)
-  {
-    Vector4 vertex = vertices[i];
-    vertex = vertex / vertex.w;
-    vertex = screenM * vertex;
-    vertices[i] = vertex;
-  }
+	for (u32 faceGroup = 0; faceGroup < model->faceGroupsCount; ++faceGroup) {
+		MeshFace *faces = culledFaces[faceGroup];
+		u32 facesToDraw = culledFacesToDraw[faceGroup];
 
-  for (u32 faceGroup = 0; faceGroup < model->faceGroupsCount; ++faceGroup)
-  {
-      MeshFace *faces = culledFaces[faceGroup];
-      u32 facesToDraw = culledFacesToDraw[faceGroup];
+		Material *material = model->faceGroups[faceGroup].material;
+		for (u32 i = 0; i < facesToDraw; ++i) {
+			MeshFace face = faces[i];
+			Vector4 verts[] = {vertices[face.v[0]], vertices[face.v[1]], vertices[face.v[2]]};
 
-      Material *material = model->faceGroups[faceGroup].material;
-      for (u32 i = 0; i < facesToDraw; ++i)
-      {
-        MeshFace face = faces[i];
-        Vector4 verts[] = 
-        {
-          vertices[face.v[0]],
-          vertices[face.v[1]],
-          vertices[face.v[2]]
-        };
+			u32 x1 = u32(verts[0].x);
+			u32 y1 = u32(verts[0].y);
+			u32 x2 = u32(verts[1].x);
+			u32 y2 = u32(verts[1].y);
+			u32 x3 = u32(verts[2].x);
+			u32 y3 = u32(verts[2].y);
 
-        u32 x1 = u32(verts[0].x);
-        u32 y1 = u32(verts[0].y);
-        u32 x2 = u32(verts[1].x);
-        u32 y2 = u32(verts[1].y);
-        u32 x3 = u32(verts[2].x);
-        u32 y3 = u32(verts[2].y);
+			if (renderMode & (RenderMode::Shaded | RenderMode::Textured)) {
+				u32 minX = min(x1, min(x2, x3));
+				u32 minY = min(y1, min(y2, y3));
+				u32 maxX = max(x1, max(x2, x3)) + 1;
+				u32 maxY = max(y1, max(y2, y3)) + 1;
 
-        if (renderMode & (RenderMode::Shaded | RenderMode::Textured))
-        {
-          u32 minX = min(x1, min(x2, x3));
-          u32 minY = min(y1, min(y2, y3));
-          u32 maxX = max(x1, max(x2, x3)) + 1;
-          u32 maxY = max(y1, max(y2, y3)) + 1;
+				Vector4 norms[3];
+				float lum[3];
+				if (renderMode & RenderMode::Shaded) {
+					// TODO: apply reverse transformations to normales
+					norms[0] = model->normales[face.n[0]];
+					norms[1] = model->normales[face.n[1]];
+					norms[2] = model->normales[face.n[2]];
 
-          Vector4 norms[3];
-          float lum[3];
-          if (renderMode & RenderMode::Shaded)
-          {
-            // TODO: apply reverse transformations to normales
-            norms[0] = model->normales[face.n[0]];
-            norms[1] = model->normales[face.n[1]];
-            norms[2] = model->normales[face.n[2]];
+					float diffuse[3];
+					for (u32 j = 0; j < 3; ++j)
+						diffuse[j] = Clamp(Dot3(norms[j], sunlightDirection), 0, 1.0f);
 
-            float diffuse[3];
-            for (u32 j = 0; j < 3; ++j)
-               diffuse[j] = Clamp(Dot3(norms[j], sunlightDirection), 0, 1.0f);
+					Vector4 L = -sunlightDirection;
+					float specular[3] = {0};
+					for (u32 j = 0; j < 3; ++j) {
+						if (diffuse[j]) {
+							Vector4 V = camDirections[face.v[j]];
+							Vector4 H = Normalized3(V + L);
+							specular[j] = Pow(Dot3(H, norms[j]), 32);
+						}
+					}
 
-            Vector4 L = -sunlightDirection;
-            float specular[3] = { 0 };
-            for (u32 j = 0; j < 3; ++j)
-            {
-                if (diffuse[j])
-                {
-                    Vector4 V = camDirections[face.v[j]];
-                    Vector4 H = Normalized3(V + L);
-                    specular[j] = Pow(Dot3(H, norms[j]), 32);
-                }
-            }
+					for (u32 j = 0; j < 3; ++j)
+						lum[j] = ambientIntencity + diffuse[j] + specular[j];
+				}
 
-            for (u32 j = 0; j < 3; ++j)
-                lum[j] = ambientIntencity + diffuse[j] + specular[j];
+				Vector2 faceUvs[3];
+				faceUvs[0] = model->uvs[face.uv[0]];
+				faceUvs[1] = model->uvs[face.uv[1]];
+				faceUvs[2] = model->uvs[face.uv[2]];
 
-          }
+				Vector2 a{float(x1), float(y1)};
+				Vector2 b{float(x2), float(y2)};
+				Vector2 c{float(x3), float(y3)};
 
-          Vector2 faceUvs[3];
-          faceUvs[0] = model->uvs[face.uv[0]];
-          faceUvs[1] = model->uvs[face.uv[1]];
-          faceUvs[2] = model->uvs[face.uv[2]];
+				Vector2 v0 = b - a;
+				Vector2 v1 = c - a;
 
-          Vector2 a { float(x1), float(y1) };
-          Vector2 b { float(x2), float(y2) };
-          Vector2 c { float(x3), float(y3) };
+				for (u32 x = minX; x < maxX; ++x) {
+					for (u32 y = minY; y < maxY; ++y) {
+						// calculate barycentric coords...
+						Vector2 p{float(x), float(y)};
+						Vector2 v2 = p - a;
 
-          Vector2 v0 = b - a;
-          Vector2 v1 = c - a;
+						float d00 = Dot2(v0, v0);
+						float d01 = Dot2(v0, v1);
+						float d11 = Dot2(v1, v1);
+						float d20 = Dot2(v2, v0);
+						float d21 = Dot2(v2, v1);
 
-          for (u32 x = minX; x < maxX; ++x)
-          {
-            for (u32 y = minY; y < maxY; ++y)
-            {
-              // calculate barycentric coords...
-              Vector2 p { float(x), float(y) };
-              Vector2 v2 = p - a;
+						float denom = d00 * d11 - d01 * d01;
 
-              float d00 = Dot2(v0, v0);
-              float d01 = Dot2(v0, v1);
-              float d11 = Dot2(v1, v1);
-              float d20 = Dot2(v2, v0);
-              float d21 = Dot2(v2, v1);
+						float v = (d11 * d20 - d01 * d21) / denom;
+						float w = (d00 * d21 - d01 * d20) / denom;
+						float u = 1.0f - v - w;
 
-              float denom = d00 * d11 - d01 * d01;
+						if (!(v >= -0.001 && w >= -0.001 && u >= -0.001)) continue;
 
-              float v = (d11 * d20 - d01 * d21) / denom;
-              float w = (d00 * d21 - d01 * d20) / denom;
-              float u = 1.0f - v - w;
+						u32 zIndex = y * targetTexture->width + x;
+						float z = verts[1].z * v + verts[2].z * w + verts[0].z * u;
+						if (zBuffer[zIndex] > z) {
+							float l = 1.0f;
 
-              if (!(v >= -0.001 && w >= -0.001 && u >= -0.001))
-                continue;
+							if (renderMode & RenderMode::Shaded) {
+								l = lum[1] * v + lum[2] * w + lum[0] * u;
+							}
 
-              u32 zIndex = y * targetTexture->width + x;
-              float z = verts[1].z * v + verts[2].z * w + verts[0].z * u;
-              if (zBuffer[zIndex] > z)
-              {
-                float l = 1.0f;
+							Color32 texel = {255, 255, 255, 255};
 
-                if (renderMode & RenderMode::Shaded)
-                {
-                  l = lum[1] * v + lum[2] * w + lum[0] * u;
-                }
+							if ((renderMode & RenderMode::Textured) && material->diffuse) {
+								float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
+								float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
+								tu *= material->diffuse->width;
+								tv *= material->diffuse->height;
+								texel = material->diffuse->GetTexel(u32(tu), u32(tv));
+							}
 
-                Color32 texel = { 255, 255, 255, 255 };
+							Color32 fragmentColor = {0};
+							for (u32 j = 0; j < 3; ++j) {
+								float cl = sunlightColor.c[j] * l / 255.0f;
+								fragmentColor.c[j] = u8(Clamp(texel.c[j] * cl, 0, 255.0f));
+							}
+							targetTexture->SetTexel(x, y, fragmentColor);
+							zBuffer[zIndex] = z;
+						}
+					}
+				}
+			}
+		}
 
-                if ((renderMode & RenderMode::Textured) && material->diffuse)
-                {
-                  float tu = faceUvs[1].x * v + faceUvs[2].x * w + faceUvs[0].x * u;
-                  float tv = faceUvs[1].y * v + faceUvs[2].y * w + faceUvs[0].y * u;
-                  tu *= material->diffuse->width;
-                  tv *= material->diffuse->height;
-                  texel = material->diffuse->GetTexel(u32(tu), u32(tv));
-                }
+		if (renderMode & RenderMode::Wireframe) {
+			for (u32 i = 0; i < facesToDraw; ++i) {
+				const Color32 modelColor{255, 255, 255, 255};
 
-                Color32 fragmentColor = { 0 };
-                for (u32 j = 0; j < 3; ++j)
-                {
-                    float cl = sunlightColor.c[j] * l / 255.0f;
-                    fragmentColor.c[j] = u8(Clamp(texel.c[j] * cl, 0, 255.0f));
-                }
-                targetTexture->SetTexel(x, y, fragmentColor);
-                zBuffer[zIndex] = z;
-              }
-            }
-          }
-        }
+				Vector4 v1 = vertices[faces[i].v[0]];
+				Vector4 v2 = vertices[faces[i].v[1]];
+				Vector4 v3 = vertices[faces[i].v[2]];
 
-      }
+				s32 x1 = (s32)v1.x;
+				s32 y1 = (s32)v1.y;
+				s32 x2 = (s32)v2.x;
+				s32 y2 = (s32)v2.y;
+				s32 x3 = (s32)v3.x;
+				s32 y3 = (s32)v3.y;
 
-      if (renderMode & RenderMode::Wireframe)
-      {
-        for (u32 i = 0; i < facesToDraw; ++i)
-        {
-          const Color32 modelColor{ 255, 255, 255, 255 };
+				DrawLine(x1, y1, x2, y2, modelColor, targetTexture);
+				DrawLine(x2, y2, x3, y3, modelColor, targetTexture);
+				DrawLine(x3, y3, x1, y1, modelColor, targetTexture);
+			}
+		}
+	}
 
-          Vector4 v1 = vertices[faces[i].v[0]];
-          Vector4 v2 = vertices[faces[i].v[1]];
-          Vector4 v3 = vertices[faces[i].v[2]];
-
-          s32 x1 = (s32)v1.x;
-          s32 y1 = (s32)v1.y;
-          s32 x2 = (s32)v2.x;
-          s32 y2 = (s32)v2.y;
-          s32 x3 = (s32)v3.x;
-          s32 y3 = (s32)v3.y;
-
-          DrawLine(x1, y1, x2, y2, modelColor, targetTexture);
-          DrawLine(x2, y2, x3, y3, modelColor, targetTexture);
-          DrawLine(x3, y3, x1, y1, modelColor, targetTexture);
-        }
-      }
-  }
-
-  pool->hiPtr = initialHiPtr;
+	pool->hiPtr = initialHiPtr;
 }
