@@ -53,3 +53,27 @@ void *MemPushBack(MemPool *pool, u64 size) {
 
 	return new_hi_ptr;
 }
+
+void MemoryCopy(void *destination, void *source, u32 bytesToCopy) {
+	u8 *destinationBytes = (u8 *)destination;
+	u8 *sourceBytes = (u8 *)source;
+
+	for (u32 i = 0; i < bytesToCopy; ++i) { destinationBytes[i] = sourceBytes[i]; }
+}
+
+void MemorySet(void *memory, u8 value, u32 size) {
+	// NOTE: super-slow, but who cares
+	u8 *mem = (u8 *)memory;
+	for (u32 i = 0; i < size; ++i) *mem = value;
+}
+
+bool MemoryEqual(void *memoryA, void *memoryB, u32 bytesToCompare) {
+	u8 *memoryABytes = (u8 *)memoryA;
+	u8 *memoryBBytes = (u8 *)memoryB;
+
+	for (u32 i = 0; i < bytesToCompare; ++i) {
+		if (memoryABytes[i] != memoryBBytes[i]) return false;
+	}
+
+	return true;
+}

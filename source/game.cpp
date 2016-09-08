@@ -3,186 +3,10 @@
 #include "utility.cpp"
 #include "math3d.cpp"
 #include "renderer.cpp"
+#include "text.cpp"
 
 // TODO: this is kinda lame, maybe there is smth I can do about it... or who cares
 #define PATH_LEN 1024 + 1
-
-bool StringCompare(const char *a, const char *b) {
-	assert(a);
-	assert(b);
-
-	while (*a && *b) {
-		if (*a != *b) return false;
-
-		++a;
-		++b;
-	}
-
-	return true;
-}
-
-u32 StringLen(const char *str) {
-	assert(str);
-	const char *p;
-	for (p = str; *p; ++p) {}
-
-	return p - str;
-}
-
-u32 StringCopyPred(char *dest, const char *src, u32 max, bool (*pred)(char, void *),
-                   void *pred_data) {
-	assert(dest);
-	assert(src);
-
-	u32 i;
-	for (i = 0; i < max - 1 && src[i]; ++i) {
-		if (pred && !pred(src[i], pred_data)) break;
-
-		dest[i] = src[i];
-	}
-
-	dest[i] = 0;
-	return i;
-}
-
-u32 StringCopy(char *dest, const char *src, u32 max) {
-	return StringCopyPred(dest, src, max, 0, 0);
-}
-
-u32 StringCat(char *dest, const char *src, u32 destLen) {
-	assert(dest);
-	assert(src);
-	char *p = dest;
-	while (*p) { ++p; }
-
-	return p - dest + StringCopy(p, src, destLen - (p - dest));
-}
-
-void StringCombine(char *dest, u32 destLen, const char *a, const char *b) {
-	assert(dest);
-	assert(destLen);
-	assert(a);
-	assert(b);
-
-	*dest = 0;
-	StringCat(dest, a, destLen);
-	StringCat(dest, b, destLen);
-}
-
-u32 SkipLine(char *inText) {
-	char *text = inText;
-	while (*text != 0x0A && *text != 0) { ++text; }
-
-	return text - inText + 1;
-}
-
-bool IsNumber(char c) { return c >= '0' && c <= '9'; }
-
-u32 ParseUInteger(char *inText, u32 *outUInt) {
-	char *text = inText;
-	u32 result = 0;
-
-	while (IsNumber(*text)) {
-		result *= 10;
-		result += *text - '0';
-		++text;
-	}
-
-	*outUInt = result;
-	return text - inText;
-}
-
-u32 ParseFloat(char *inText, float *outFloat) {
-	char *text = inText;
-	bool positive = true;
-	u32 fraction = 0;
-
-	if (*text == '-') {
-		positive = false;
-		++text;
-	}
-
-	bool pointEncountered = false;
-	u32 divisor = 1;
-	for (;;) {
-		char c = *text;
-		if (IsNumber(c)) {
-			fraction *= 10;
-			fraction += c - '0';
-
-			++text;
-
-			if (pointEncountered) divisor *= 10;
-		} else if (c == '.') {
-			pointEncountered = true;
-			++text;
-		} else
-			break;
-	}
-
-	float result = float(fraction) / float(divisor);
-	if (!positive) result *= -1.0f;
-
-	*outFloat = result;
-	return text - inText;
-}
-
-void MemoryCopy(void *destination, void *source, u32 bytesToCopy) {
-	u8 *destinationBytes = (u8 *)destination;
-	u8 *sourceBytes = (u8 *)source;
-
-	for (u32 i = 0; i < bytesToCopy; ++i) { destinationBytes[i] = sourceBytes[i]; }
-}
-
-void MemorySet(void *memory, u8 value, u32 size) {
-	// NOTE: super-slow, but who cares
-	u8 *mem = (u8 *)memory;
-	for (u32 i = 0; i < size; ++i) *mem = value;
-}
-
-bool MemoryEqual(void *memoryA, void *memoryB, u32 bytesToCompare) {
-	u8 *memoryABytes = (u8 *)memoryA;
-	u8 *memoryBBytes = (u8 *)memoryB;
-
-	for (u32 i = 0; i < bytesToCompare; ++i) {
-		if (memoryABytes[i] != memoryBBytes[i]) return false;
-	}
-
-	return true;
-}
-
-u32 ParseVector3(char *inText, Vector4 *outVector) {
-	char *text = inText;
-	Vector4 result;
-
-	for (u32 i = 0; i < 3; ++i) {
-		text += ParseFloat(text, &result.components[i]);
-		++text;
-	}
-
-	*outVector = result;
-	return text - inText;
-}
-
-bool StringBeginsWith(const char *string, const char *prefix) {
-	while (*string && *prefix) {
-		if (*string != *prefix) return false;
-
-		++string;
-		++prefix;
-	}
-
-	return true;
-}
-
-bool StringPredCharNotInList(char c, void *d) {
-	char *charList = (char *)d;
-	for (char *p = charList; *p; ++p) {
-		if (c == *p) return false;
-	}
-
-	return true;
-}
 
 #pragma pack(push, 1)
 struct BitmapFileHeader {
@@ -330,6 +154,19 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 	*outTexturesCount = texturesCount;
 
 	pool->hiPtr = initialHiPtr;
+}
+
+u32 ParseVector3(char *inText, Vector4 *outVector) {
+	char *text = inText;
+	Vector4 result;
+
+	for (u32 i = 0; i < 3; ++i) {
+		text += ParseFloat(text, &result.components[i]);
+		++text;
+	}
+
+	*outVector = result;
+	return text - inText;
 }
 
 void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model *inOutModel,
