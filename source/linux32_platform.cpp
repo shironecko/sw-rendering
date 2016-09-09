@@ -19,6 +19,9 @@
 #include <stdio.h>
 #include <string.h>
 
+void PlatformAssert(usize condition) {
+}
+
 u64 PlatformGetFileSize(const char *path) {
 	struct stat fileStats;
 	s32 statResult = stat(path, &fileStats);

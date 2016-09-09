@@ -6,7 +6,7 @@
 
 #include <windows.h>
 
-void PlatformAssert(u32 condition) {
+void PlatformAssert(usize condition) {
 	if (!condition) DebugBreak();
 }
 

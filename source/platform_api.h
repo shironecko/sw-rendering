@@ -24,12 +24,12 @@ static_assert(sizeof(s64) == 8, TYPE_SIZE_ERROR_MSG);
  * TODO: is this a good way to figure out bitness? or do I need to check
  * against platform-dependant defines?
  */
-#if defined(_WIN32)
+#if defined(__i386__) || defined(_M_IX86)
 #define PAPI_X32
-#elif defined(_WIN64)
+#elif defined(__amd64__) || defined(_M_X64)
 #define PAPI_X64
 #else
-#error "Unsupported platform!"
+#error "Unsupported arch!"
 #endif
 
 #if defined(PAPI_X32)
@@ -57,12 +57,12 @@ global const u32 Kb = 1024;
 global const u32 Mb = 1024 * Kb;
 global const u32 Gb = 1024 * Mb;
 
-void PlatformAssert(u32 condition);
+void PlatformAssert(usize condition);
 u64 PlatformGetFileSize(const char *path);
 u32 PlatformLoadFile(const char *path, void *memory, u32 memorySize);
 bool PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite);
 
-#define assert(x) PlatformAssert((u32)(x))
+#define assert(x) PlatformAssert((usize)(x))
 
 struct KbKey {
 	enum {

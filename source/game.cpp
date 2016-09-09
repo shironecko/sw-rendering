@@ -117,14 +117,14 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 			MemorySet(materials + materialIdx, 0, sizeof(*materials));
 			text += StringLen("newmtl ");
 			StringCopyPred(materials[materialIdx].name, text, sizeof(materials[materialIdx].name),
-			               StringPredCharNotInList, "\n");
+			               StringPredCharNotInList, (void*)"\n");
 		} else if (StringBeginsWith(text, "map_Kd ")) {
 			++texturesCount;
 			if (dryRun) continue;
 
 			text += StringLen("map_Kd ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].diffuse = textures + texturesCount - 1;
 		} else if (StringBeginsWith(text, "bump ")) {
@@ -133,7 +133,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 
 			text += StringLen("bump ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].bump = textures + texturesCount - 1;
 		} else if (StringBeginsWith(text, "map_Ks ")) {
@@ -142,7 +142,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 
 			text += StringLen("map_Ks ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, " \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].specular = textures + texturesCount - 1;
 		}
@@ -218,7 +218,7 @@ void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model
 			// NOTE: no support for multiple mtl filse yet
 			char *localText = text + 7;
 			char mtlName[PATH_LEN];
-			StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, "\n");
+			StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, (void*)"\n");
 			u32 tc = 0;
 			LoadMtl(resourcePath, mtlName, materials, &materialsCount, textures + texturesCount,
 			        &tc, pool, dryRun);
@@ -231,7 +231,7 @@ void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model
 			char *localText = text + StringLen("usemtl ");
 			char materialName[RC_NAME_LEN];
 			StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList,
-			               " \n");
+			               (void*)" \n");
 			s32 materialIndex = -1;
 			for (u32 i = 0; i < materialsCount; ++i) {
 				if (StringCompare(materialName, materials[i].name)) {
