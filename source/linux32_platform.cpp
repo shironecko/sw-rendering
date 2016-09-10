@@ -1,7 +1,6 @@
 #include "platform_api.h"
 #include "game.cpp"
 
-#include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
@@ -20,6 +19,8 @@
 #include <string.h>
 
 void PlatformAssert(usize condition) {
+	// TODO: do smth more graceful
+	*((u32*)0) = 0;
 }
 
 u64 PlatformGetFileSize(const char *path) {
