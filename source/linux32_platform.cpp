@@ -20,7 +20,7 @@
 
 void PlatformAssert(usize condition) {
 	// TODO: do smth more graceful
-	*((u32*)0) = 0;
+	if (!condition) *((u32 *)0) = 0;
 }
 
 u64 PlatformGetFileSize(const char *path) {
@@ -59,12 +59,15 @@ void Linux32SetupRenderingBuffers(RenderTarget *renderTarget, u32 width, u32 hei
                                   void *buffersMemory, u32 buffersMemorySize) {
 	u8 *memory = (u8 *)buffersMemory;
 	renderTarget->texture = (Texture *)memory;
-	memory += sizeof(Texture) + width * height * sizeof(Color32);
+	memory += sizeof(*renderTarget->texture);
+	renderTarget->texture->texels = (Color32 *)memory;
+	memory += width * height * sizeof(*renderTarget->texture->texels);
 	renderTarget->texture->width = width;
 	renderTarget->texture->height = height;
 
 	renderTarget->zBuffer = (float *)memory;
 	memory += sizeof(float) * width * height;
+	assert((memory - (u8 *)buffersMemory) <= buffersMemorySize);
 }
 
 timespec TimespecDiff(timespec start, timespec end) {
