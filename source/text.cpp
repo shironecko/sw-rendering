@@ -1,4 +1,4 @@
-bool StringCompare(const char *a, const char *b) {
+b32 StringCompare(const char *a, const char *b) {
 	assert(a);
 	assert(b);
 
@@ -20,7 +20,7 @@ u32 StringLen(const char *str) {
 	return p - str;
 }
 
-u32 StringCopyPred(char *dest, const char *src, u32 max, bool (*pred)(char, void *),
+u32 StringCopyPred(char *dest, const char *src, u32 max, b32 (*pred)(char, void *),
                    void *pred_data) {
 	assert(dest);
 	assert(src);
@@ -67,7 +67,7 @@ u32 SkipLine(char *inText) {
 	return text - inText + 1;
 }
 
-bool IsNumber(char c) { return c >= '0' && c <= '9'; }
+b32 IsNumber(char c) { return c >= '0' && c <= '9'; }
 
 u32 ParseUInteger(char *inText, u32 *outUInt) {
 	char *text = inText;
@@ -85,7 +85,7 @@ u32 ParseUInteger(char *inText, u32 *outUInt) {
 
 u32 ParseFloat(char *inText, float *outFloat) {
 	char *text = inText;
-	bool positive = true;
+	b32 positive = true;
 	u32 fraction = 0;
 
 	if (*text == '-') {
@@ -93,7 +93,7 @@ u32 ParseFloat(char *inText, float *outFloat) {
 		++text;
 	}
 
-	bool pointEncountered = false;
+	b32 pointEncountered = false;
 	u32 divisor = 1;
 	for (;;) {
 		char c = *text;
@@ -118,7 +118,7 @@ u32 ParseFloat(char *inText, float *outFloat) {
 	return text - inText;
 }
 
-bool StringPredCharNotInList(char c, void *d) {
+b32 StringPredCharNotInList(char c, void *d) {
 	char *charList = (char *)d;
 	for (char *p = charList; *p; ++p) {
 		if (c == *p) return false;
@@ -127,7 +127,7 @@ bool StringPredCharNotInList(char c, void *d) {
 	return true;
 }
 
-bool StringBeginsWith(const char *string, const char *prefix) {
+b32 StringBeginsWith(const char *string, const char *prefix) {
 	while (*string && *prefix) {
 		if (*string != *prefix) return false;
 

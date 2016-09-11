@@ -14,6 +14,8 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
+typedef u32 b32;
+
 #define TYPE_SIZE_ERROR_MSG "Unsupported type size for current platform, please fix this!"
 static_assert(sizeof(s16) == 2, TYPE_SIZE_ERROR_MSG);
 static_assert(sizeof(s32) == 4, TYPE_SIZE_ERROR_MSG);
@@ -60,7 +62,7 @@ global const u32 Gb = 1024 * Mb;
 void PlatformAssert(usize condition);
 u64 PlatformGetFileSize(const char *path);
 u32 PlatformLoadFile(const char *path, void *memory, u32 memorySize);
-bool PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite);
+b32 PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite);
 
 #define assert(x) PlatformAssert((usize)(x))
 

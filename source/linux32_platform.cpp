@@ -1,4 +1,5 @@
 #include "platform_api.h"
+#include "utility.cpp"
 #include "game.cpp"
 
 #include <X11/Xlib.h>
@@ -20,7 +21,7 @@
 
 void PlatformAssert(usize condition) {
 	// TODO: do smth more graceful
-	if (!condition) *((u32 *)0) = 0;
+	if (!condition) __builtin_trap();
 }
 
 u64 PlatformGetFileSize(const char *path) {
@@ -43,7 +44,7 @@ u32 PlatformLoadFile(const char *path, void *memory, u32 memorySize) {
 	return readResult == -1 ? 0 : readResult;
 }
 
-bool PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite) {
+b32 PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite) {
 	// TODO: handle directory creation
 
 	s32 file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
@@ -239,11 +240,11 @@ int main(int argc, char **argv) {
 	glEnable(GL_TEXTURE_2D);
 
 	XEvent event;
-	bool kbState[KbKey::LastKey]{};
+	b32 kbState[KbKey::LastKey]{};
 
 	GameInitialize(gameMemory, gameMemorySize);
 
-	bool continueRunning = true;
+	b32 continueRunning = true;
 	float deltaTime = 0;
 	do {
 		timespec startFrameTime;
@@ -283,7 +284,7 @@ int main(int argc, char **argv) {
 		}
 
 		// GAME UPDATE
-		bool gameWantsToContinue =
+		b32 gameWantsToContinue =
 		    GameUpdate(deltaTime, gameMemory, gameMemorySize, &renderBuffer, kbState);
 
 		continueRunning &= gameWantsToContinue;
