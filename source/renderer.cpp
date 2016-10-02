@@ -172,7 +172,7 @@ void Render(RenderTarget *target, u32 renderMode, Model *model, Vector4 cameraPo
 		for (u32 i = 0; i < facesCount; ++i) {
 			MeshFace face = srcFaces[i];
 
-			bool isInsideFrustrum = true;
+			b32 isInsideFrustrum = true;
 			for (u32 j = 0; j < 3; ++j) {
 				Vector4 vertex = vertices[face.v[j]];
 

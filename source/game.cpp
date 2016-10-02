@@ -1,6 +1,5 @@
 #include "platform_api.h"
 
-#include "utility.cpp"
 #include "math3d.cpp"
 #include "renderer.cpp"
 #include "text.cpp"
@@ -45,7 +44,7 @@ struct BitmapColor32 {
 	};
 };
 
-Texture LoadBmp(const char *resourcePath, const char *bmpName, MemPool *pool, bool dryRun) {
+Texture LoadBmp(const char *resourcePath, const char *bmpName, MemPool *pool, b32 dryRun) {
 	char bmpPath[PATH_LEN];
 	StringCombine(bmpPath, sizeof(bmpPath), resourcePath, bmpName);
 	u32 fileSize = (u32)PlatformGetFileSize(bmpPath);
@@ -87,7 +86,7 @@ Texture LoadBmp(const char *resourcePath, const char *bmpName, MemPool *pool, bo
  */
 void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
              u32 *inOutMaterialsCount, Texture *textures, u32 *outTexturesCount, MemPool *pool,
-             bool dryRun) {
+             b32 dryRun) {
 	// TODO: figure out something less clunky
 	char mtlPath[PATH_LEN];
 	StringCombine(mtlPath, sizeof(mtlPath), resourcePath, mtlName);
@@ -170,7 +169,7 @@ u32 ParseVector3(char *inText, Vector4 *outVector) {
 }
 
 void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model *inOutModel,
-             u32 *inOutTotalFaceCount, bool dryRun) {
+             u32 *inOutTotalFaceCount, b32 dryRun) {
 	char objPath[PATH_LEN];
 	StringCombine(objPath, sizeof(objPath), resourcePath, objName);
 	u32 fileSize = (u32)PlatformGetFileSize(objPath);
@@ -403,8 +402,8 @@ local void GameInitialize(void *gameMemory, u32 gameMemorySize) {
 	LoadModel("./assets/", "muro.obj", &gameData->pool, &gameData->model);
 }
 
-local bool GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
-                      RenderTarget *renderTarget, bool *kbState) {
+local b32 GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
+                      RenderTarget *renderTarget, b32 *kbState) {
 	const float camZoomSpeed = 1.0f;
 	const float camRotationSpeed = 2.0f;
 	local_persist float camDistance = 7.0f;

@@ -2,6 +2,7 @@
 #define _STATIC_CPPLIB
 
 #include "platform_api.h"
+#include "utility.cpp"
 #include "game.cpp"
 
 #include <windows.h>
@@ -49,7 +50,7 @@ u32 PlatformLoadFile(const char *path, void *memory, u32 memorySize) {
 	return bytesRead;
 }
 
-bool PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite) {
+b32 PlatformWriteFile(const char *path, void *memory, u32 bytesToWrite) {
 	// TODO: handle directory creation
 
 	HANDLE fileHandle =
@@ -85,7 +86,7 @@ struct Win32BackBuffer {
 };
 
 struct {
-	bool shouldRun;
+	b32 shouldRun;
 	u32 windowWidth;
 	u32 windowHeight;
 
@@ -315,7 +316,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE /* prevInstance */, char * /*
 			DispatchMessage(&message);
 		}
 
-		bool gameWantsToContinue = GameUpdate(deltaTime, gameMemory, gameMemorySize,
+		b32 gameWantsToContinue = GameUpdate(deltaTime, gameMemory, gameMemorySize,
 		                                      &g_platformData.renderBuffer, kbState);
 		g_platformData.shouldRun &= gameWantsToContinue;
 		Win32PresentToWindow(windowDC, g_platformData.windowWidth, g_platformData.windowHeight,

@@ -67,7 +67,7 @@ void MemorySet(void *memory, u8 value, u32 size) {
 	for (u32 i = 0; i < size; ++i) *mem = value;
 }
 
-bool MemoryEqual(void *memoryA, void *memoryB, u32 bytesToCompare) {
+b32 MemoryEqual(void *memoryA, void *memoryB, u32 bytesToCompare) {
 	u8 *memoryABytes = (u8 *)memoryA;
 	u8 *memoryBBytes = (u8 *)memoryB;
 
