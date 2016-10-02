@@ -279,7 +279,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE /* prevInstance */, char * /*
 
 	HDC windowDC = GetDC(window);
 	MSG message{};
-	bool kbState[KbKey::Last]{};
+	b32 kbState[KbKey::Last]{};
 
 	LARGE_INTEGER lastFrameTime;
 	LARGE_INTEGER queryFrequency;

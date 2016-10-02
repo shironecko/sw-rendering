@@ -375,19 +375,19 @@ void LoadModel(const char *resourcePath, const char *objName, MemPool *pool, Mod
 	assert(initialPool.hiPtr == pool->hiPtr);
 }
 
-bool IsKeyUp(bool *lastKbState, bool *kbState, u32 key) {
+b32 IsKeyUp(b32 *lastKbState, b32 *kbState, u32 key) {
 	assert(key < KbKey::Last);
 	return lastKbState[key] && !kbState[key];
 }
 
-bool IsKeyDown(bool *lastKbState, bool *kbState, u32 key) {
+b32 IsKeyDown(b32 *lastKbState, b32 *kbState, u32 key) {
 	assert(key < KbKey::Last);
 	return !lastKbState[key] && kbState[key];
 }
 
 struct GameData {
 	Model model;
-	bool lastKbState[KbKey::Last];
+	b32 lastKbState[KbKey::Last];
 	u32 renderMode;
 	MemPool pool;
 };
@@ -430,8 +430,8 @@ local b32 GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
 	    ScreenSpaceMatrix(renderTarget->texture->width, renderTarget->texture->height);
 
 	GameData *gameData = (GameData *)gameMemory;
-	bool *kb = kbState;
-	bool *lkb = gameData->lastKbState;
+	b32 *kb = kbState;
+	b32 *lkb = gameData->lastKbState;
 	if (IsKeyDown(lkb, kb, KbKey::N_0))
 		gameData->renderMode = RenderMode::Shaded | RenderMode::Textured;
 	if (IsKeyDown(lkb, kb, KbKey::N_1)) gameData->renderMode ^= RenderMode::Shaded;
