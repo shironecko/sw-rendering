@@ -278,7 +278,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE /* prevInstance */, char * /*
 
 	HDC windowDC = GetDC(window);
 	MSG message{};
-	bool kbState[KbKey::LastKey]{};
+	bool kbState[KbKey::Last]{};
 
 	LARGE_INTEGER lastFrameTime;
 	LARGE_INTEGER queryFrequency;
@@ -306,7 +306,7 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE /* prevInstance */, char * /*
 				u32 keyMapIdx = message.wParam;
 				if (keyMapIdx < g_keyMapSize) {
 					u32 kbStateIdx = g_keyMap[keyMapIdx];
-					assert(kbStateIdx < KbKey::LastKey);
+					assert(kbStateIdx < KbKey::Last);
 
 					kbState[kbStateIdx] = message.message == WM_KEYDOWN;
 				}

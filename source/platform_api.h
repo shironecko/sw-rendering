@@ -148,6 +148,6 @@ struct KbKey {
 		F10,
 		F11,
 		F12,
-		LastKey
+		Last
 	};
 };

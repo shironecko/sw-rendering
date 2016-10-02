@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
 				assert(u32(key) <= 0xffff + 1);
 
 				u32 kbStateIdx = g_keyMap[u32(key)];
-				assert(kbStateIdx < KbKey::LastKey);
+				assert(kbStateIdx < KbKey::Last);
 
 				kbState[kbStateIdx] = event.type == KeyPress;
 			}

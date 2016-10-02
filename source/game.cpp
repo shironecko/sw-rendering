@@ -117,14 +117,14 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 			MemorySet(materials + materialIdx, 0, sizeof(*materials));
 			text += StringLen("newmtl ");
 			StringCopyPred(materials[materialIdx].name, text, sizeof(materials[materialIdx].name),
-			               StringPredCharNotInList, (void*)"\n");
+			               StringPredCharNotInList, (void *)"\n");
 		} else if (StringBeginsWith(text, "map_Kd ")) {
 			++texturesCount;
 			if (dryRun) continue;
 
 			text += StringLen("map_Kd ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void *)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].diffuse = textures + texturesCount - 1;
 		} else if (StringBeginsWith(text, "bump ")) {
@@ -133,7 +133,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 
 			text += StringLen("bump ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void *)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].bump = textures + texturesCount - 1;
 		} else if (StringBeginsWith(text, "map_Ks ")) {
@@ -142,7 +142,7 @@ void LoadMtl(const char *resourcePath, const char *mtlName, Material *materials,
 
 			text += StringLen("map_Ks ");
 			char bmpName[PATH_LEN] = {0};
-			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void*)" \n");
+			StringCopyPred(bmpName, text, sizeof(bmpName), StringPredCharNotInList, (void *)" \n");
 			textures[texturesCount - 1] = LoadBmp(resourcePath, bmpName, pool, dryRun);
 			materials[materialIdx].specular = textures + texturesCount - 1;
 		}
@@ -218,7 +218,8 @@ void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model
 			// NOTE: no support for multiple mtl filse yet
 			char *localText = text + 7;
 			char mtlName[PATH_LEN];
-			StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList, (void*)"\n");
+			StringCopyPred(mtlName, localText, sizeof(mtlName), StringPredCharNotInList,
+			               (void *)"\n");
 			u32 tc = 0;
 			LoadMtl(resourcePath, mtlName, materials, &materialsCount, textures + texturesCount,
 			        &tc, pool, dryRun);
@@ -231,7 +232,7 @@ void LoadObj(const char *resourcePath, const char *objName, MemPool *pool, Model
 			char *localText = text + StringLen("usemtl ");
 			char materialName[RC_NAME_LEN];
 			StringCopyPred(materialName, localText, sizeof(materialName), StringPredCharNotInList,
-			               (void*)" \n");
+			               (void *)" \n");
 			s32 materialIndex = -1;
 			for (u32 i = 0; i < materialsCount; ++i) {
 				if (StringCompare(materialName, materials[i].name)) {
@@ -375,13 +376,26 @@ void LoadModel(const char *resourcePath, const char *objName, MemPool *pool, Mod
 	assert(initialPool.hiPtr == pool->hiPtr);
 }
 
+bool IsKeyUp(bool *lastKbState, bool *kbState, u32 key) {
+	assert(key < KbKey::Last);
+	return lastKbState[key] && !kbState[key];
+}
+
+bool IsKeyDown(bool *lastKbState, bool *kbState, u32 key) {
+	assert(key < KbKey::Last);
+	return !lastKbState[key] && kbState[key];
+}
+
 struct GameData {
 	Model model;
+	bool lastKbState[KbKey::Last];
+	u32 renderMode;
 	MemPool pool;
 };
 
 local void GameInitialize(void *gameMemory, u32 gameMemorySize) {
 	GameData *gameData = (GameData *)gameMemory;
+	gameData->renderMode = RenderMode::Shaded | RenderMode::Textured;
 	// TODO: add alignment to MemPool
 	gameData->pool =
 	    NewMemPool((u8 *)gameMemory + sizeof(*gameData), gameMemorySize - sizeof(*gameData));
@@ -417,11 +431,19 @@ local bool GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
 	    ScreenSpaceMatrix(renderTarget->texture->width, renderTarget->texture->height);
 
 	GameData *gameData = (GameData *)gameMemory;
+	bool *kb = kbState;
+	bool *lkb = gameData->lastKbState;
+	if (IsKeyDown(lkb, kb, KbKey::N_0))
+		gameData->renderMode = RenderMode::Shaded | RenderMode::Textured;
+	if (IsKeyDown(lkb, kb, KbKey::N_1)) gameData->renderMode ^= RenderMode::Shaded;
+	if (IsKeyDown(lkb, kb, KbKey::N_2)) gameData->renderMode ^= RenderMode::Textured;
+	if (IsKeyDown(lkb, kb, KbKey::N_3)) gameData->renderMode ^= RenderMode::Wireframe;
 
 	ClearRenderTarget(renderTarget, {0, 0, 0, 255});
-	Render(renderTarget, RenderMode::Shaded | RenderMode::Textured, &gameData->model, camPos,
-	       view * model, projection, screenMatrix, Normalized3(Vector4{1, 1, 1, 0}),
-	       {255, 255, 255, 255}, 0.05f, &gameData->pool);
+	Render(renderTarget, gameData->renderMode, &gameData->model, camPos, view * model, projection,
+	       screenMatrix, Normalized3(Vector4{1, 1, 1, 0}), {255, 255, 255, 255}, 0.05f,
+	       &gameData->pool);
 
+	MemoryCopy(gameData->lastKbState, kbState, sizeof(*kbState) * KbKey::Last);
 	return true;
 }
