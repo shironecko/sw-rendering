@@ -100,27 +100,30 @@ struct {
 void Win32SetupRenderingBuffers(u32 width, u32 height) {
 	u8 *platformMemory = (u8 *)g_platformData.memory;
 
+	float scale = 0.75f;
+	u32 w = (u32)(width * scale), h = (u32)(height * scale);
+
 	BITMAPINFO info{};
 	info.bmiHeader.biSize = sizeof(info.bmiHeader);
-	info.bmiHeader.biWidth = width;
-	info.bmiHeader.biHeight = height;
+	info.bmiHeader.biWidth = w;
+	info.bmiHeader.biHeight = h;
 	info.bmiHeader.biPlanes = 1;
 	info.bmiHeader.biBitCount = 32;
 	info.bmiHeader.biCompression = BI_RGB;
 
 	g_platformData.backBuffer.info = info;
 	g_platformData.backBuffer.memory = (u32 *)platformMemory;
-	platformMemory += width * height * sizeof(u32);
+	platformMemory += w * h * sizeof(u32);
 
 	Texture **texture = &g_platformData.renderBuffer.texture;
 	*texture = (Texture *)platformMemory;
-	(*texture)->width = width;
-	(*texture)->height = height;
+	(*texture)->width = w;
+	(*texture)->height = h;
 	(*texture)->texels = (Color32 *)(platformMemory + sizeof(Texture));
-	platformMemory += width * height * sizeof(Color32) + sizeof(Texture);
+	platformMemory += w * h * sizeof(Color32) + sizeof(Texture);
 
 	g_platformData.renderBuffer.zBuffer = (float *)platformMemory;
-	platformMemory += width * height * sizeof(float);
+	platformMemory += w * h * sizeof(float);
 
 	assert(u32(platformMemory - (u8 *)g_platformData.memory) <= g_platformData.memorySize);
 }
