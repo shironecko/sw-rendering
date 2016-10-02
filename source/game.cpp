@@ -385,10 +385,18 @@ b32 IsKeyDown(b32 *lastKbState, b32 *kbState, u32 key) {
 	return !lastKbState[key] && kbState[key];
 }
 
+typedef struct {
+	Vector4 pos;
+	float pitch;
+	float yaw;
+} Camera;
+
 struct GameData {
 	Model model;
 	b32 lastKbState[KbKey::Last];
 	u32 renderMode;
+	Camera camera;
+
 	MemPool pool;
 };
 
@@ -403,33 +411,41 @@ local void GameInitialize(void *gameMemory, u32 gameMemorySize) {
 }
 
 local b32 GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
-                      RenderTarget *renderTarget, b32 *kbState) {
-	const float camZoomSpeed = 1.0f;
-	const float camRotationSpeed = 2.0f;
-	local_persist float camDistance = 7.0f;
-	local_persist float camRotation = 0;
-
-	if (kbState[KbKey::W]) camDistance -= camZoomSpeed * deltaTime;
-	if (kbState[KbKey::S]) camDistance += camZoomSpeed * deltaTime;
-	if (kbState[KbKey::A]) camRotation -= camRotationSpeed * deltaTime;
-	if (kbState[KbKey::D]) camRotation += camRotationSpeed * deltaTime;
+                     RenderTarget *renderTarget, b32 *kbState) {
 	if (kbState[KbKey::Escape]) return false;
 
+	GameData *gameData = (GameData *)gameMemory;
+	const float camRotationSpeed = 2.0f;
+	const float camSpeed = 1.0f;
+
+	Camera c = gameData->camera;
+	if (kbState[KbKey::Left]) c.yaw -= camRotationSpeed * deltaTime;
+	if (kbState[KbKey::Right]) c.yaw += camRotationSpeed * deltaTime;
+	if (kbState[KbKey::Up]) c.pitch -= camRotationSpeed * deltaTime;
+	if (kbState[KbKey::Down]) c.pitch += camRotationSpeed * deltaTime;
+
+	c.pitch = Clamp(c.pitch, -PI * 0.45f, PI * 0.45f);
+	c.yaw = (float)fmod(c.yaw, PI * 2);
+
+	Matrix4x4 camRotation = RotationMatrixX(c.yaw) * RotationMatrixY(c.pitch);
+	if (kbState[KbKey::W])
+		c.pos = c.pos -  Vector4{0, 0, camSpeed * deltaTime, 0};
+	if (kbState[KbKey::S])
+		c.pos = c.pos +  Vector4{0, 0, camSpeed * deltaTime, 0};
+
+	Matrix4x4 camMat = FPSViewMatrix(c.pos, c.yaw, c.pitch);
+	gameData->camera = c;
+
 	float scale = 0.05f;
-	Matrix4x4 model = TranslationMatrix(0, -5.0f, 0) * ScaleMatrix(scale, scale, scale);
-
-	Vector4 camPos{0, 0, camDistance, 1.0f};
-	camPos = RotationMatrixY(camRotation) * camPos;
-	Matrix4x4 view = LookAtCameraMatrix(camPos, {0, 0, 0, 1.0f}, {0, 1.0f, 0, 0});
-
+	Matrix4x4 model = TranslationMatrix(0, -5.0f, -5.0f) * ScaleMatrix(scale, scale, scale);
+	Matrix4x4 view = camMat;
 	Matrix4x4 projection = ProjectionMatrix(90.0f, float(renderTarget->texture->width) /
 	                                                   float(renderTarget->texture->height),
 	                                        0.1f, 1000.0f);
 
 	Matrix4x4 screenMatrix =
-	    ScreenSpaceMatrix(renderTarget->texture->width, renderTarget->texture->height);
+	    ScreenSpaceMatrix(renderTarget->texture->width - 1, renderTarget->texture->height - 1);
 
-	GameData *gameData = (GameData *)gameMemory;
 	b32 *kb = kbState;
 	b32 *lkb = gameData->lastKbState;
 	if (IsKeyDown(lkb, kb, KbKey::N_0))
@@ -439,8 +455,8 @@ local b32 GameUpdate(float deltaTime, void *gameMemory, u32 gameMemorySize,
 	if (IsKeyDown(lkb, kb, KbKey::N_3)) gameData->renderMode ^= RenderMode::Wireframe;
 
 	ClearRenderTarget(renderTarget, {0, 0, 0, 255});
-	Render(renderTarget, gameData->renderMode, &gameData->model, camPos, view * model, projection,
-	       screenMatrix, Normalized3(Vector4{1, 1, 1, 0}), {255, 255, 255, 255}, 0.05f,
+	Render(renderTarget, gameData->renderMode, &gameData->model, gameData->camera.pos, view * model,
+	       projection, screenMatrix, Normalized3(Vector4{1, 1, 1, 0}), {255, 255, 255, 255}, 0.05f,
 	       &gameData->pool);
 
 	MemoryCopy(gameData->lastKbState, kbState, sizeof(*kbState) * KbKey::Last);

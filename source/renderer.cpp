@@ -177,7 +177,8 @@ void Render(RenderTarget *target, u32 renderMode, Model *model, Vector4 cameraPo
 				Vector4 vertex = vertices[face.v[j]];
 
 				if (vertex.x > vertex.w || vertex.x < -vertex.w || vertex.y > vertex.w ||
-				    vertex.y < -vertex.w || vertex.z > vertex.w || vertex.z < -vertex.w) {
+				    vertex.y < -vertex.w || vertex.z > vertex.w || vertex.z < -vertex.w ||
+				    vertex.w == 0) {
 					isInsideFrustrum = false;
 					break;
 				}

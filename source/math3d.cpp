@@ -80,14 +80,14 @@ Vector4 operator-(Vector4 vec) { return Vector4{-vec.x, -vec.y, -vec.z, -vec.w};
 Vector4 operator+(Vector4 a, Vector4 b) { return a - (-b); }
 
 float SqrLength3(Vector4 vec) {
-	assert(vec.w == 0);
+	/* assert(vec.w == 0); */
 	return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 }
 
 float Length3(Vector4 vec) { return (float)sqrt(SqrLength3(vec)); }
 
 Vector4 Normalized3(Vector4 vec) {
-	assert(vec.w == 0);
+	//assert(vec.w == 0);
 	return vec / Length3(vec);
 }
 
@@ -150,10 +150,20 @@ static Matrix4x4 TranslationMatrix(float x, float y, float z) {
 	return Matrix4x4{1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1};
 };
 
+static Matrix4x4 RotationMatrixX(float angle) {
+	return Matrix4x4{
+		1.0f,                 0,                  0,   0,
+		   0, (float)cos(angle), (float)-sin(angle),   0,
+		   0, (float)sin(angle),  (float)cos(angle),   0,
+		   0,                 0,                  0, 1.0f};
+}
+
 static Matrix4x4 RotationMatrixY(float angle) {
-	// TODO: use intrinsics
-	return Matrix4x4{(float)cos(angle),  0, (float)sin(angle), 0, 0, 1.0f, 0, 0,
-	                 (float)-sin(angle), 0, (float)cos(angle), 0, 0, 0,    0, 1.0f};
+	return Matrix4x4{
+		 (float)cos(angle),    0, (float)sin(angle),   0,
+		                 0, 1.0f,                 0,   0,
+		(float)-sin(angle),    0, (float)cos(angle),   0, 
+		                 0,    0,                 0, 1.0f};
 }
 
 static Matrix4x4 LookAtCameraMatrix(Vector4 eye, Vector4 target, Vector4 up) {
@@ -166,6 +176,24 @@ static Matrix4x4 LookAtCameraMatrix(Vector4 eye, Vector4 target, Vector4 up) {
 	return Matrix4x4{
 	    xaxis.x, xaxis.y, xaxis.z, -Dot3(eye, xaxis), yaxis.x, yaxis.y, yaxis.z, -Dot3(eye, yaxis),
 	    zaxis.x, zaxis.y, zaxis.z, -Dot3(eye, zaxis), 0,       0,       0,       1.0f};
+}
+
+// lifted from http://www.3dgep.com/understanding-the-view-matrix/
+static Matrix4x4 FPSViewMatrix(Vector4 eye, float yaw, float pitch) {
+	float cosPitch = (float)cos(pitch);
+	float sinPitch = (float)sin(pitch);
+	float cosYaw = (float)cos(yaw);
+	float sinYaw = (float)sin(yaw);
+
+	Vector4 xaxis = {cosYaw, 0, -sinYaw};
+	Vector4 yaxis = {sinYaw * sinPitch, cosPitch, cosYaw * sinPitch};
+	Vector4 zaxis = {sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch};
+
+	Matrix4x4 viewMatrix = {
+	    xaxis.x, yaxis.x, zaxis.x, 0, xaxis.y,           yaxis.y,           zaxis.y,           0,
+	    xaxis.z, yaxis.z, zaxis.z, 0, -Dot3(xaxis, eye), -Dot3(yaxis, eye), -Dot3(zaxis, eye), 1};
+
+	return viewMatrix;
 }
 
 static Matrix4x4 ProjectionMatrix(float vfov, float aspect, float clipNear, float clipFar) {
