@@ -1,8 +1,8 @@
 #pragma once
 
-#define global static
-#define local_persist static
-#define local static
+#define GLOBAL static
+#define LOCAL_PERSISTENT static
+#define LOCAL static
 
 typedef signed char s8;
 typedef signed short s16;
@@ -55,9 +55,9 @@ T align(T x, u32 alignment = 16) {
 #error "Unsupported compiler!"
 #endif
 
-global const u32 Kb = 1024;
-global const u32 Mb = 1024 * Kb;
-global const u32 Gb = 1024 * Mb;
+GLOBAL const u32 Kb = 1024;
+GLOBAL const u32 Mb = 1024 * Kb;
+GLOBAL const u32 Gb = 1024 * Mb;
 
 void PlatformAssert(usize condition);
 u64 PlatformGetFileSize(const char *path);

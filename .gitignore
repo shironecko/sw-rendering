@@ -1,5 +1,8 @@
 ## Ignore build directory
 build
 
+# Asserts folder is ignored, at least for now
+assets
+
 # Visual Studo 2015 cache/options directory
 .vs/
