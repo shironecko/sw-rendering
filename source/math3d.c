@@ -209,17 +209,31 @@ MATH_INLINE_FN float dot_v4(vec4 a, vec4 b) {
 
 // mat4
 MATH_INLINE_FN vec4 row_m4(mat4 m, u32 row) {
+    MATH_ASSERT(row < 4);
 	return m.rows[row];
 }
 
 MATH_INLINE_FN vec4 col_m4(mat4 m, u32 col) {
-	return (vec4){row_m4(m, 0).e[col], row_m4(m, 1).e[col], row_m4(m, 2).e[col],
-	              row_m4(m, 3).e[col]};
+    MATH_ASSERT(col < 4);
+    vec4 m0 = row_m4(m, 0);
+    vec4 m1 = row_m4(m, 1);
+    vec4 m2 = row_m4(m, 2);
+    vec4 m3 = row_m4(m, 3);
+	return (vec4){
+        m0.e[col], 
+        m1.e[col], 
+        m2.e[col],
+	    m3.e[col]
+    };
 }
 
 MATH_FN vec4 mul_m4v4(mat4 m, vec4 v) {
-	return (vec4){dot_v4(v, row_m4(m, 0)), dot_v4(v, row_m4(m, 1)), dot_v4(v, row_m4(m, 2)),
-	              dot_v4(v, row_m4(m, 3))};
+	return (vec4){
+        dot_v4(v, row_m4(m, 0)), 
+        dot_v4(v, row_m4(m, 1)), 
+        dot_v4(v, row_m4(m, 2)),
+	    dot_v4(v, row_m4(m, 3))
+    };
 }
 
 MATH_FN mat4 mul_m4(mat4 a, mat4 b) {

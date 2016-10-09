@@ -1,5 +1,6 @@
-## Ignore build directory
+## Ignore build stuff
 build
+env.txt
 
 # Asserts folder is ignored, at least for now
 assets
