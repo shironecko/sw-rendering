@@ -112,7 +112,7 @@ typedef struct game_state {
 	
 	//****************SW RENDERING****************//
 	Camera camera;
-	Model model;
+	model model;
 	u32 render_mode;
 } game_state;
 

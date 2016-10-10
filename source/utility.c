@@ -1,79 +1,70 @@
 #pragma once
 
-#include "platform_api.h"
+//******************** Config ********************//
 
-template <typename T>
-T abs(T x) {
-	return x >= 0 ? x : -x;
-}
+#ifndef UT_ASSERT
+#define UT_ASSERT SDL_assert
+#endif // #ifndef UT_ASSERT
 
-template <typename T>
-T min(T a, T b) {
-	return a > b ? b : a;
-}
+#ifndef UT_INLINE
+#define UT_INLINE inline
+#endif // #ifndef UT_INLINE
 
-template <typename T>
-T max(T a, T b) {
-	return a > b ? a : b;
-}
+#define UT_FN LOCAL
+#define UT_INLINE_FN UT_INLINE UT_FN
 
-template <typename T>
-void swap(T *a, T *b) {
-	T tmp = *a;
-	*a = *b;
-	*b = tmp;
-}
+//******************** Data ********************//
 
-typedef struct mem_pool {
+typedef struct {
 	u8 *start, *end;
 	u8 *low, *hi;
 } mem_pool;
 
-mem_pool NewMemPool(void *memory, u64 size) {
+//******************** Functions ********************//
+
+UT_INLINE_FN mem_pool new_mem_pool(void *memory, u64 size) {
 	mem_pool result;
-	result.start = result.lowPtr = (u8 *)memory;
-	result.end = result.hiPtr = (u8 *)memory + size;
+	result.start = result.low = (u8 *)memory;
+	result.end = result.hi = (u8 *)memory + size;
 
 	return result;
 }
 
-void *MemPush(mem_pool *pool, u64 size) {
-	u8 *new_low_ptr = pool->lowPtr + size;
-	assert(new_low_ptr <= pool->hiPtr);
-	void *result = pool->lowPtr;
-	pool->lowPtr = new_low_ptr;
+UT_INLINE_FN void *mem_push(mem_pool *pool, u64 size) {
+	u8 *new_low = pool->low + size;
+	assert(new_low <= pool->hi);
+	void *result = pool->low;
+	pool->low = new_low;
 
 	return result;
 }
 
-void *MemPushBack(mem_pool *pool, u64 size) {
-	u8 *new_hi_ptr = pool->hiPtr - size;
-	assert(new_hi_ptr >= pool->lowPtr);
-	pool->hiPtr = new_hi_ptr;
+UT_INLINE_FN void *mem_push_back(mem_pool *pool, u64 size) {
+	u8 *new_hi = pool->hi - size;
+	assert(new_hi >= pool->low);
+	pool->hi = new_hi;
 
-	return new_hi_ptr;
+	return new_hi;
 }
 
-void MemoryCopy(void *destination, void *source, u32 bytesToCopy) {
-	u8 *destinationBytes = (u8 *)destination;
-	u8 *sourceBytes = (u8 *)source;
-
-	for (u32 i = 0; i < bytesToCopy; ++i) { destinationBytes[i] = sourceBytes[i]; }
-}
-
-void MemorySet(void *memory, u8 value, u32 size) {
-	// NOTE: super-slow, but who cares
-	u8 *mem = (u8 *)memory;
-	for (u32 i = 0; i < size; ++i) *mem = value;
-}
-
-b32 MemoryEqual(void *memoryA, void *memoryB, u32 bytesToCompare) {
-	u8 *memoryABytes = (u8 *)memoryA;
-	u8 *memoryBBytes = (u8 *)memoryB;
-
-	for (u32 i = 0; i < bytesToCompare; ++i) {
-		if (memoryABytes[i] != memoryBBytes[i]) return false;
+#define DEFINE_MAX(fn_name, type)                                                                  \
+	UT_INLINE_FN type fn_name(type a, type b) {                                                    \
+		return a > b ? a : b;                                                                      \
 	}
 
-	return true;
-}
+#define DEFINE_MIN(fn_name, type)                                                                  \
+	UT_INLINE_FN type fn_name(type a, type b) {                                                    \
+		return a < b ? a : b;                                                                      \
+	}
+
+#define DEFINE_ABS(fn_name, type)                                                                  \
+	UT_INLINE_FN type fn_name(type x) {                                                            \
+		return x > 0 ? x : -x;                                                                     \
+	}
+
+DEFINE_MIN(minf, float);
+DEFINE_MAX(maxf, float);
+DEFINE_ABS(absf, float);
+
+DEFINE_MIN(minu, u32);
+DEFINE_MAX(maxu, u32);

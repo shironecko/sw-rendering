@@ -3,8 +3,8 @@
 
 #include <platform.h>
 
-#define MATH_ASSERT assert
-#include <math3d.c>
+#define UT_ASSERT assert
+#include <utility.c>
 
 int main(void)
 {
