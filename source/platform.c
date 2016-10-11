@@ -1,14 +1,16 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "platform.h"
-#include "game.h"
+#include <SDL.h>
+
+#include <platform.h>
+#include <game.h>
 
 #if defined(__WINDOWS__)
 #define PT_GAME_DYNAMIC
 #endif
 
 #if !defined(PT_GAME_DYNAMIC)
-#include "game.c"
+#include <game.c>
 #endif
 
 #if defined(__WINDOWS__)

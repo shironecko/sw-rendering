@@ -111,7 +111,7 @@ u32 ParseFloat(char *inText, float *outFloat) {
 			break;
 	}
 
-	float result = float(fraction) / float(divisor);
+	float result = (float)fraction / (float)divisor;
 	if (!positive) result *= -1.0f;
 
 	*outFloat = result;

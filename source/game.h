@@ -2,12 +2,12 @@
 
 #include "platform.h"
 
-struct mouse_info {
+typedef struct {
 	s32 x, y;
 	b32 lmb, rmb;
-};
+} mouse_info;
 
-typedef struct game_data {
+typedef struct {
 	void *memory;
 	u32 memory_size;
 
@@ -21,4 +21,4 @@ typedef struct game_data {
 	// TODO: add pointers to platform functions... or not, we'll se how it'll go
 } game_data;
 
-b32 game_update(struct game_data *data, struct gl_functions gl, float delta_time);
+b32 game_update(game_data *data, gl_functions gl, float delta_time);

@@ -20,12 +20,17 @@ cl %CommonClOptions% ^
 	.\source\tests\math3d_tests.c ^
 	/link %CommonLinkOptions% /subsystem:console
 
+echo [INFO] Build utility tests...
+cl %CommonClOptions% ^
+	.\source\tests\utility_tests.c ^
+	/link %CommonLinkOptions% /subsystem:console
+
 echo [INFO] Build sw_render tests...
 cl %CommonClOptions% ^
 	.\source\tests\sw_render_tests.c ^
 	/link %CommonLinkOptions% /subsystem:console
 
-echo [INFO] Build utility tests...
+echo [INFO] Build assets tests...
 cl %CommonClOptions% ^
-	.\source\tests\utility_tests.c ^
+	.\source\tests\assets_tests.c ^
 	/link %CommonLinkOptions% /subsystem:console
