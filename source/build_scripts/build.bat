@@ -45,6 +45,9 @@ if ERRORLEVEL 1 (
     echo [WARNING] Platform layer build failed [ignore if hot-reloading]
 )
 
+REM remove old pdbs...
+del .\build\game_*.pdb
+
 echo [INFO] Building game...
 echo wait a minute, you bastard! > .\build\game.lock
 cl %CommonClOptions% ^
