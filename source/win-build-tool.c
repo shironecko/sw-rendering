@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 	int user_choice;
 	do {
 		SetConsoleTextAttribute(con_handle, FG_WHITE | FG_BOLD);
-        printf("{ [b]uild, [a]ndroid, [t]ests, [c]lear, [q]uit } $> ");
+        printf("{ [b]uild, [a]ndroid, [c]lear, [q]uit } $> ");
 		user_choice = _getch();
 		printf("\n");
 
@@ -81,10 +81,6 @@ int main(int argc, char **argv) {
 			do_build("..\\source\\build_scripts\\build_android.bat 2>&1", con_handle, ignore_patterns,
 			         sizeof(ignore_patterns) / sizeof(ignore_patterns[0]));
 		} break;
-        case 't': {
-            do_build("..\\source\\build_scripts\\build_tests.bat 2>&1", con_handle, ignore_patterns,
-                     sizeof(ignore_patterns) / sizeof(ignore_patterns[0]));
-        } break;
 		case 'c': {
 			cls(con_handle);
 		} break;
