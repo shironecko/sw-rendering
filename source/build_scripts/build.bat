@@ -16,13 +16,13 @@ set CommonClOptions=/nologo /W4 /wd4204 /wd4100 /wd4152 /wd4201 ^
     /I %CD%\source /I %CD%\source\3rdparty /I %CD%\source\3rdparty\SDL2\include
 REM /I "C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt"
 
+set SDL_MsbuildParams=/nologo /verbosity:quiet ^
+	/p:PlatformToolset=%PlatformToolset%;Configuration=Debug;Platform=x64;useenv=true;OutDir=%cd%\build\ ^
+	/p:AdditionalIncludePaths=$(UniversalCRT_IncludePath)
+
 if not exist .\build\SDL2.dll (
     echo [INFO] Building SDL2...
     xcopy .\source\3rdparty\SDL2 .\build\SDL2 /h /y /s /i /q
-
-    set SDL_MsbuildParams=/nologo /verbosity:quiet ^
-        /p:PlatformToolset=%PlatformToolset%;Configuration=Debug;Platform=x64;useenv=true;OutDir=%cd%\build\ ^
-		"/p:AdditionalIncludePaths=$(UniversalCRT_IncludePath)"
 
     msbuild .\build\SDL2\VisualC\SDL\SDL.vcxproj %SDL_MsbuildParams%
     if ERRORLEVEL 1 (
