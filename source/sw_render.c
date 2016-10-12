@@ -8,7 +8,7 @@
 
 //******************** Data ********************//
 
-typedef struct col4 {
+typedef struct {
 	union {
 		u8 e[4];
 
@@ -22,7 +22,7 @@ enum {
 	SWR_RC_NAME_LEN = 32 + 1,
 };
 
-typedef struct tex2d {
+typedef struct {
 	col4 *texels;
 	u32 width;
 	u32 height;
@@ -30,7 +30,7 @@ typedef struct tex2d {
 	char name[SWR_RC_NAME_LEN];
 } tex2d;
 
-typedef struct material {
+typedef struct {
 	tex2d *diffuse;
 	tex2d *bump;
 	tex2d *specular;
@@ -38,19 +38,19 @@ typedef struct material {
 	char name[SWR_RC_NAME_LEN];
 } material;
 
-typedef struct face {
+typedef struct {
 	u32 v[3];
 	u32 uv[3];
 	u32 n[3];
 } face;
 
-typedef struct face_group {
+typedef struct {
 	face *faces;
 	u32 nfaces;
 	material *material;
 } face_group;
 
-typedef struct model {
+typedef struct {
 	vec3 *vertices;
 	u32 nvertices;
 
@@ -71,6 +71,11 @@ typedef struct model {
 
 	char name[SWR_RC_NAME_LEN];
 } model;
+
+typedef struct {
+	tex2d *texture;
+	float *z_buffer;
+} swr_render_target;
 
 enum {
 	SRM_BACKFACE_CULLING = 1 << 0,
@@ -127,11 +132,6 @@ SWR_FN void swr_line(s32 x1, s32 y1, s32 x2, s32 y2, col4 color, tex2d texture) 
 	}
 }
 
-typedef struct swr_render_target {
-	tex2d *texture;
-	float *z_buffer;
-} swr_render_target;
-
 SWR_FN void swr_clear_rt(swr_render_target *rt, col4 clear_col) {
 	tex2d target_tex = *rt->texture;
 	float *z_buffer = rt->z_buffer;
@@ -157,9 +157,9 @@ SWR_FN void swr_render_model(swr_render_target *target, u32 render_mode, model *
 	vec4 *vertices = (vec4 *)mem_push_back(pool, model->nvertices * sizeof(*vertices));
 	vec3 *cam_directions = (vec3 *)mem_push_back(pool, model->nvertices * sizeof(*cam_directions));
 	for (u32 i = 0, e = model->nvertices; i < e; ++i) {
-		vec3 v = mul_m4v4(model_mat, (vec4){.xyz = model->vertices[i], .w = 1.0f}).xyz;
+		vec3 v = mul_m4v4(model_mat, v3_to_v4(model->vertices[i], 1.0f)).xyz;
 		cam_directions[i] = norm_v3(sub_v3(v, cam_pos));
-		vertices[i] = mul_m4v4(viewproj_mat, (vec4){.xyz = v, .w = 1.0f});
+		vertices[i] = mul_m4v4(viewproj_mat, v3_to_v4(v, 1.0f));
 	}
 
 	face **culled_faces = (face **)mem_push_back(pool, model->nface_groups * sizeof(*culled_faces));

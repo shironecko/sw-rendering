@@ -174,9 +174,9 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		state->initialized = true;
 
 		state->pool =
-		    new_mem_pool((u8*)data->memory + sizeof(*state), data->memory_size - sizeof(*state));
+		    new_mem_pool((u8 *)data->memory + sizeof(*state), data->memory_size - sizeof(*state));
 
-		state->render_mode = SRM_SHADED | SRM_TEXTURED;
+		state->render_mode = SRM_WIREFRAME;
 		load_model("./assets/", "muro.obj", &state->pool, &state->model);
 
 		// minimal shader
@@ -468,50 +468,84 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 
 	// render font texture
 	{
-	    /* gl(glEnable(GL_BLEND)); */
-	    /* gl(glBlendEquation(GL_FUNC_ADD)); */
-	    /* gl(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)); */
-	    /* gl(glDisable(GL_DEPTH_TEST)); */
-	    /* gl(glUseProgram(state->ui_shader.id)); */
-	    /* gl(glUniform1i(state->ui_shader.u_tex, 0)); */
+		gl(glEnable(GL_BLEND));
+		gl(glBlendEquation(GL_FUNC_ADD));
+		gl(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+		gl(glDisable(GL_DEPTH_TEST));
+		gl(glUseProgram(state->ui_shader.id));
+		gl(glUniform1i(state->ui_shader.u_tex, 0));
 
-	    /* GLsizei vs = sizeof(struct nk_draw_vertex); */
-	    /* size_t vp = offsetof(struct nk_draw_vertex, position); */
-	    /* size_t vt = offsetof(struct nk_draw_vertex, uv); */
-	    /* size_t vc = offsetof(struct nk_draw_vertex, col); */
+		GLsizei vs = sizeof(struct nk_draw_vertex);
+		size_t vp = offsetof(struct nk_draw_vertex, position);
+		size_t vt = offsetof(struct nk_draw_vertex, uv);
+		size_t vc = offsetof(struct nk_draw_vertex, col);
 
-	    /* gl(glBindBuffer(GL_ARRAY_BUFFER, state->ui_shader.v_array)); */
-	    /* /1* gl(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ui_shader.i_array)); *1/ */
+		gl(glBindBuffer(GL_ARRAY_BUFFER, state->ui_shader.v_array));
+		/* gl(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ui_shader.i_array)); */
 
-	    /* gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_pos)); */
-	    /* gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_uv)); */
-	    /* gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_col)); */
+		gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_pos));
+		gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_uv));
+		gl(glEnableVertexAttribArray((GLuint)state->ui_shader.a_col));
 
-	    /* gl(glVertexAttribPointer((GLuint)state->ui_shader.a_pos, 2, GL_FLOAT, GL_FALSE, vs,
-	       (void*)vp)); */
-	    /* gl(glVertexAttribPointer((GLuint)state->ui_shader.a_uv, 2, GL_FLOAT, GL_FALSE, vs,
-	       (void*)vt)); */
-	    /* gl(glVertexAttribPointer((GLuint)state->ui_shader.a_col, 4, GL_UNSIGNED_BYTE, GL_TRUE,
-	       vs, (void*)vc)); */
+		gl(glVertexAttribPointer((GLuint)state->ui_shader.a_pos, 2, GL_FLOAT, GL_FALSE, vs,
+		                         (void *)vp));
+		gl(glVertexAttribPointer((GLuint)state->ui_shader.a_uv, 2, GL_FLOAT, GL_FALSE, vs,
+		                         (void *)vt));
+		gl(glVertexAttribPointer((GLuint)state->ui_shader.a_col, 4, GL_UNSIGNED_BYTE, GL_TRUE, vs,
+		                         (void *)vc));
 
-	    /* struct nk_draw_vertex vertices[] = */
-	    /* { */
-	    /*     { { 0, 0 }, { 0, 0 }, 0xFFFFFFFF }, */
-	    /*     { { REF_W, 0 }, { 1, 0 }, 0xFFFFFFFF }, */
-	    /*     { { 0, REF_H }, { 0, 1 }, 0xFFFFFFFF }, */
-	    /*     { { REF_W, REF_H }, { 1, 1 }, 0xFFFFFFFF } */
-	    /* }; */
+		struct nk_draw_vertex vertices[] = {{{0, 0}, {0, 0}, 0xFFFFFFFF},
+		                                    {{REF_W, 0}, {1, 0}, 0xFFFFFFFF},
+		                                    {{0, REF_H}, {0, 1}, 0xFFFFFFFF},
+		                                    {{REF_W, REF_H}, {1, 1}, 0xFFFFFFFF}};
 
-	    /* u32 indices[] = { 0, 1, 2, 2, 1, 3 }; */
+		u32 indices[] = {0, 1, 2, 2, 1, 3};
 
-	    /* gl(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW)); */
-	    /* /1* gl(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW));
-	       *1/ */
+		gl(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
+		/* gl(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW)); */
 
-	    /* gl(glActiveTexture(GL_TEXTURE0)); */
-	    /* gl(glBindTexture(GL_TEXTURE_2D, (GLuint)state->ui_font.texture)); */
-	    /* gl(glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT,
-	       indices)); */
+		mem_pool pool = state->pool;
+		tex2d mem_texture = {.width = state->window_w, .height = state->window_h};
+		mem_texture.texels = (col4 *)mem_push(&pool, sizeof(*mem_texture.texels) *
+		                                                 mem_texture.width * mem_texture.height);
+
+		float *z_buffer =
+		    mem_push(&pool, sizeof(*z_buffer) * mem_texture.width * mem_texture.height);
+		swr_render_target render_target = {.texture = &mem_texture, .z_buffer = z_buffer};
+
+		float scale = 0.05f;
+		mat4 model_m4 = trans_m4(0, -5.0f, -5.0f);
+		model_m4 = mul_m4(model_m4, scale_m4(scale, scale, scale));
+
+		vec3 cam_pos = {0, 0, 1.0f};
+		mat4 view_m4 = lookat_cam(cam_pos, V3_ZERO, V3_UP);
+		mat4 projection_m4 = projection(90.0f, (float)render_target.texture->width /
+		                                           (float)render_target.texture->height,
+		                                0.1f, 1000.0f);
+
+		mat4 screen_m4 =
+		    screen_space(render_target.texture->width - 1, render_target.texture->height - 1);
+
+		swr_clear_rt(&render_target, (col4){0, 0, 0, 255});
+		swr_render_model(&render_target, state->render_mode, &state->model, cam_pos,
+		                 mul_m4(view_m4, model_m4), projection_m4, screen_m4,
+		                 norm_v3((vec3){1, 1, 1}), (col4){255, 255, 255, 255}, 0.05f, &pool);
+
+		u32 texture;
+		gl(glGenTextures(1, &texture));
+		gl(glBindTexture(GL_TEXTURE_2D, texture));
+		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		gl(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mem_texture.width, mem_texture.height, 0,
+		                GL_RGBA, GL_UNSIGNED_BYTE, mem_texture.texels));
+
+		gl(glActiveTexture(GL_TEXTURE0));
+		gl(glBindTexture(GL_TEXTURE_2D, texture));
+		gl(glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT,
+		                  indices));
+
+		gl(glBindTexture(GL_TEXTURE_2D, 0));
+		gl(glDeleteTextures(1, &texture));
 	}
 
 	// render UI

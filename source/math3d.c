@@ -90,12 +90,19 @@ typedef struct mat4 {
 	};
 } mat4;
 
-#define ONE_V2 (vec2{1.0f, 1.0f})
-#define ZERO_V2 (vec2{0, 0})
-#define ONE_V3 (vec3{1.0f, 1.0f, 1.0f})
-#define ZERO_V3 (vec3{0, 0, 0})
-#define ONE_V4 (vec4{1.0f, 1.0f, 1.0f, 1.0f})
-#define ZERO_V4 (vec4{0, 0, 0, 0})
+#define V2_ZERO ((vec2){0, 0})
+#define V2_ONE ((vec2){1.0f, 1.0f})
+#define V2_UP ((vec2){0, 1.0f})
+#define V2_RIGHT ((vec2){1.0f, 0})
+
+#define V3_ZERO ((vec3){0, 0, 0})
+#define V3_ONE ((vec3){1.0f, 1.0f, 1.0f})
+#define V3_UP ((vec3){0, 1.0f, 0})
+#define V3_RIGHT ((vec3){1.0f, 0, 0})
+#define V3_FORWARD ((vec3){0, 0, -1.0f})
+
+#define V4_ZERO ((vec4){0, 0, 0, 0})
+#define V4_ONE ((vec4){1.0f, 1.0f, 1.0f, 1.0f})
 
 //******************** Functions ********************//
 
@@ -205,6 +212,11 @@ MATH_INLINE_FN vec4 div_v4f(vec4 v, float s) {
 }
 MATH_INLINE_FN float dot_v4(vec4 a, vec4 b) {
 	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+MATH_INLINE_FN vec4 v3_to_v4(vec3 v, float w)
+{
+	return (vec4){v.x, v.y, v.z, w};
 }
 
 // mat4
