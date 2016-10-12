@@ -32,7 +32,7 @@ UT_INLINE_FN mem_pool new_mem_pool(void *memory, u64 size) {
 
 UT_INLINE_FN void *mem_push(mem_pool *pool, u64 size) {
 	u8 *new_low = pool->low + size;
-	assert(new_low <= pool->hi);
+	UT_ASSERT(new_low <= pool->hi);
 	void *result = pool->low;
 	pool->low = new_low;
 
@@ -41,7 +41,7 @@ UT_INLINE_FN void *mem_push(mem_pool *pool, u64 size) {
 
 UT_INLINE_FN void *mem_push_back(mem_pool *pool, u64 size) {
 	u8 *new_hi = pool->hi - size;
-	assert(new_hi >= pool->low);
+	UT_ASSERT(new_hi >= pool->low);
 	pool->hi = new_hi;
 
 	return new_hi;

@@ -1,3 +1,7 @@
+#ifndef AS_ASSERT
+#define AS_ASSERT SDL_assert
+#endif // #ifndef AS_ASSERT
+
 // TODO: this is kinda lame, maybe there is smth I can do about it... or who cares
 #define PATH_LEN 1024 + 1
 
@@ -60,19 +64,19 @@ tex2d load_bmp(const char *res_path, const char *bmp_name, mem_pool *pool, b32 d
 	char bmp_path[PATH_LEN];
 	StringCombine(bmp_path, sizeof(bmp_path), res_path, bmp_name);
 	u32 file_size = (u32)get_file_size(bmp_path);
-	assert(file_size);
+	AS_ASSERT(file_size);
 
 	u8 *initial_hi_ptr = pool->hi;
 	u8 *raw_bmp = (u8 *)mem_push_back(pool, file_size);
 	load_file(bmp_path, raw_bmp, file_size);
 
 	bmp_header *file_header = (bmp_header *)raw_bmp;
-	bmp_info_header *info_header = (bmp_info_header *)(raw_bmp + sizeof(file_header));
+	bmp_info_header *info_header = (bmp_info_header *)(raw_bmp + sizeof(*file_header));
 
 	u16 bmp_file_type = ((u16)'M' << 8) | 'B';
-	assert(file_header->type == bmp_file_type);
-	assert(info_header->nbits == 32);
-	assert(info_header->compression == 0 || info_header->compression == 3);
+	AS_ASSERT(file_header->type == bmp_file_type);
+	AS_ASSERT(info_header->nbits == 32);
+	AS_ASSERT(info_header->compression == 0 || info_header->compression == 3);
 
 	info_header->height = info_header->height >= 0 ? info_header->height : -info_header->height;
 
@@ -100,7 +104,7 @@ void load_mtl(const char *res_path, const char *mtl_name, material *materials,
 	char mtl_path[PATH_LEN];
 	StringCombine(mtl_path, sizeof(mtl_path), res_path, mtl_name);
 	u32 file_size = (u32)get_file_size(mtl_path);
-	assert(file_size);
+	AS_ASSERT(file_size);
 
 	u8 *initial_hi_ptr = pool->hi;
 	char *mtl_text = (char *)mem_push_back(pool, file_size + 1);
@@ -163,9 +167,9 @@ void load_mtl(const char *res_path, const char *mtl_name, material *materials,
 		}
 	}
 
-	assert((imaterial == (s32)nmaterials - 1) || dry_run);
+	AS_ASSERT((imaterial == (s32)nmaterials - 1) || dry_run);
 
-	assert(out_ntextures);
+	AS_ASSERT(out_ntextures);
 	*out_ntextures = ntextures;
 
 	pool->hi = initial_hi_ptr;
@@ -189,7 +193,7 @@ void load_obj(const char *res_path, const char *obj_name, mem_pool *pool, model 
 	char obj_path[PATH_LEN];
 	StringCombine(obj_path, sizeof(obj_path), res_path, obj_name);
 	u32 file_size = (u32)get_file_size(obj_path);
-	assert(file_size);
+	AS_ASSERT(file_size);
 
 	u8 *initial_hi_ptr = pool->hi;
 	char *obj_text = (char *)mem_push_back(pool, file_size + 1);
@@ -258,7 +262,7 @@ void load_obj(const char *res_path, const char *obj_name, mem_pool *pool, model 
 				}
 			}
 
-			assert(imaterial != -1);
+			AS_ASSERT(imaterial != -1);
 			face_groups[nface_groups - 1].faces = faces + nfaces_total;
 			face_groups[nface_groups - 1].nfaces = 0;
 			face_groups[nface_groups - 1].material = materials + imaterial;
@@ -354,19 +358,19 @@ void load_obj(const char *res_path, const char *obj_name, mem_pool *pool, model 
 		in_out_model->ntextures = ntextures;
 		*in_out_nfaces_total = nfaces_total;
 	} else {
-		assert(in_out_model->nvertices == nvertices);
-		assert(in_out_model->nuvs == nuvs);
-		assert(in_out_model->nnormales == nnormales);
-		assert(in_out_model->nface_groups == nface_groups);
-		assert(in_out_model->nmaterials == nmaterials);
-		assert(in_out_model->ntextures == ntextures);
-		assert(*in_out_nfaces_total == nfaces_total);
+		AS_ASSERT(in_out_model->nvertices == nvertices);
+		AS_ASSERT(in_out_model->nuvs == nuvs);
+		AS_ASSERT(in_out_model->nnormales == nnormales);
+		AS_ASSERT(in_out_model->nface_groups == nface_groups);
+		AS_ASSERT(in_out_model->nmaterials == nmaterials);
+		AS_ASSERT(in_out_model->ntextures == ntextures);
+		AS_ASSERT(*in_out_nfaces_total == nfaces_total);
 
 		u32 nfaces_in_groups = 0;
 		for (u32 i = 0; i < nface_groups; ++i)
 			nfaces_in_groups += face_groups[i].nfaces;
 
-		assert(nfaces_in_groups == nfaces_total);
+		AS_ASSERT(nfaces_in_groups == nfaces_total);
 
 		in_out_model->vertices = vertices;
 		in_out_model->uvs = uvs;
@@ -380,18 +384,18 @@ void load_obj(const char *res_path, const char *obj_name, mem_pool *pool, model 
 }
 
 void load_model(const char *res_path, const char *obj_name, mem_pool *pool, model *out_model) {
-	assert(res_path);
-	assert(obj_name);
-	assert(pool);
-	assert(out_model);
+	AS_ASSERT(res_path);
+	AS_ASSERT(obj_name);
+	AS_ASSERT(pool);
+	AS_ASSERT(out_model);
 
 	// a dry run to collect the number of vertices, size of the textures etc.
 	mem_pool initial_pool = *pool;
 	u32 nfaces = 0;
 	load_obj(res_path, obj_name, pool, out_model, &nfaces, true);
-	assert(memcmp(&initial_pool, pool, sizeof(initial_pool)));
+	AS_ASSERT(!memcmp(&initial_pool, pool, sizeof(initial_pool)));
 
 	// an actual process of loading a model
 	load_obj(res_path, obj_name, pool, out_model, &nfaces, false);
-	assert(initial_pool.hi == pool->hi);
+	AS_ASSERT(initial_pool.hi == pool->hi);
 }

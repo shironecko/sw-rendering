@@ -1,23 +1,3 @@
-#ifndef SDL_MAJOR_VERSION
-#include <SDL.h>
-#endif
-
-#if defined(__IPHONEOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(__NACL__)
-#define HAVE_OPENGLES
-#endif
-
-#if defined(HAVE_OPENGLES)
-#include <SDL_opengles2.h>
-#else
-#include <SDL_opengl.h>
-#endif
-
-typedef struct {
-#define gl_function(ret, func, params) ret(APIENTRY *func) params;
-#include "gl_functions.h"
-#undef gl_function
-} gl_functions ;
-
 #ifdef GL_RIGOROUS_CHECKS
 #define gl(expression) gl_assert(gl_fns.expression)
 #define gl_set(assignee, expression) gl_set_assert(assignee, gl_fns.expression)
@@ -96,7 +76,7 @@ LOCAL void get_gl_error_str(GLenum error_code, char *buffer, u32 buffer_size) {
 		stb_snprintf(buffer, buffer_size, "0x%x", error_code);
 }
 
-LOCAL b32 compile_shader(struct gl_functions gl_fns, GLuint *out_shader, const char *src,
+LOCAL b32 compile_shader(gl_functions gl_fns, GLuint *out_shader, const char *src,
                           GLenum shader_type, char *error_buff, u32 error_buff_size) {
 	GLuint shader;
 	gl_set(shader, glCreateShader(shader_type));
@@ -120,7 +100,7 @@ LOCAL b32 compile_shader(struct gl_functions gl_fns, GLuint *out_shader, const c
 #define compile_shader_program(gl_fns, out_program, vert_src, frag_src)                            \
 	compile_shader_program_fn(gl_fns, out_program, vert_src, frag_src, __FILE__, __LINE__)
 
-LOCAL b32 compile_shader_program_fn(struct gl_functions gl_fns, GLuint *out_program,
+LOCAL b32 compile_shader_program_fn(gl_functions gl_fns, GLuint *out_program,
                                      const char *vert_src, const char *frag_src, const char *file,
                                      u32 line) {
 	GLuint vertex_shader;

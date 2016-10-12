@@ -1,12 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "game.h"
-#include "math3d.cpp"
-#include "sw_render.cpp"
-#include "gl_render.c"
-#include "text.cpp"
-#include "assets.c"
 
-#include <stdlib.h>
+#include <SDL.h>
 
 /* ---STB lib--- */
 #define STB_DEFINE
@@ -15,17 +9,28 @@
 #pragma warning(disable : 4311)
 #pragma warning(disable : 4312)
 #pragma warning(disable : 4701)
-#include "stb.h"
+#include <stb.h>
 #pragma warning(pop)
+
+#include <platform.h>
+#include <game.h>
+#include <math3d.c>
+#include <utility.c>
+#include <sw_render.c>
+#include <gl_render.c>
+#include <text.c>
+#include <assets.c>
+
+#include <stdlib.h>
 
 /* ---STB rect pack--- */
 #define STB_RECT_PACK_IMPLEMENTATION
-#include "stb_rect_pack.h"
+#include <stb_rect_pack.h>
 
 /* ---STB truetype--- */
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
+#include <stb_truetype.h>
 
 /* ---Nuclear IMGUI--- */
 #define NK_BYTE u8
@@ -51,7 +56,7 @@
 #define REF_W 640
 #define REF_H 480
 
-struct ui_font {
+typedef struct {
 	struct nk_user_font nk_font;
 	float height;
 	float ascent;
@@ -59,14 +64,15 @@ struct ui_font {
 	stbtt_packedchar packed_chars[256];
 	GLuint texture;
 	u32 tex_w, tex_h;
-};
+} ui_font;
+
 typedef struct {
 	vec4 pos;
 	float pitch;
 	float yaw;
 } Camera;
 
-typedef struct game_state {
+typedef struct {
 	//****************BASICS****************//
 	b32 initialized;
 
@@ -95,7 +101,7 @@ typedef struct game_state {
 		GLuint v_array, i_array;
 	} ui_shader;
 
-	struct ui_font ui_font;
+	ui_font ui_font;
 
 	struct nk_context ui_context;
 	struct nk_buffer ui_cmd_buff;
@@ -109,33 +115,69 @@ typedef struct game_state {
 
 	u8 ui_vertex_buffer[512 * 1024];
 	u8 ui_element_buffer[128 * 1024];
-	
+
 	//****************SW RENDERING****************//
 	Camera camera;
 	model model;
 	u32 render_mode;
 } game_state;
 
-b32 IsKeyUp(b32 *lastKbState, b32 *kbState, u32 key) {
-	assert(key < KbKey::Last);
-	return lastKbState[key] && !kbState[key];
+/* b32 IsKeyUp(b32 *lastKbState, b32 *kbState, u32 key) { */
+/* 	assert(key < KbKey::Last); */
+/* 	return lastKbState[key] && !kbState[key]; */
+/* } */
+
+/* b32 IsKeyDown(b32 *lastKbState, b32 *kbState, u32 key) { */
+/* 	assert(key < KbKey::Last); */
+/* 	return !lastKbState[key] && kbState[key]; */
+/* } */
+
+float ui_text_width_fn(nk_handle userdata, float height, const char *str, int len) {
+	ui_font *font = userdata.ptr;
+	float xpos = 0, ypos = 0;
+	for (s32 i = 0; i < len; ++i) {
+		stbtt_aligned_quad quad;
+		stbtt_GetPackedQuad(font->packed_chars, font->tex_w, font->tex_h, str[i], &xpos, &ypos,
+		                    &quad, 0);
+	}
+
+	float scale = height / font->height;
+	return xpos * scale;
 }
 
-b32 IsKeyDown(b32 *lastKbState, b32 *kbState, u32 key) {
-	assert(key < KbKey::Last);
-	return !lastKbState[key] && kbState[key];
+void ui_query_font_glyph_fn(nk_handle userdata, float height, struct nk_user_font_glyph *glyph,
+                            nk_rune codepoint, nk_rune next_codepoint) {
+	ui_font *font = userdata.ptr;
+	float xpos = 0, ypos = 0;
+	float scale = height / font->height;
+	stbtt_aligned_quad quad;
+	stbtt_GetPackedQuad(font->packed_chars, font->tex_w, font->tex_h, codepoint, &xpos, &ypos,
+	                    &quad, 0);
+	glyph->uv[0].x = quad.s0;
+	glyph->uv[0].y = quad.t0;
+	glyph->uv[1].x = quad.s1;
+	glyph->uv[1].y = quad.t1;
+	glyph->offset.x = quad.x0 * scale;
+	glyph->offset.y = (quad.y0 + font->ascent) * scale;
+	glyph->width = (quad.x1 - quad.x0) * scale;
+	glyph->height = (quad.y1 - quad.y0) * scale;
+	glyph->xadvance = xpos * scale;
 }
 
-b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
-	if (data->kb[SDL_SCANCODE_ESCAPE]) return false;
+b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
+	if (data->kb[SDL_SCANCODE_ESCAPE])
+		return false;
 
 	game_state *state = (game_state *)data->memory;
 	if (!state->initialized) {
 		SDL_Log("Initializing game state...");
 		state->initialized = true;
 
-		state->render_mode = RenderMode::Shaded | RenderMode::Textured;
-		LoadModel("./assets/", "muro.obj", &state->pool, &state->model);
+		state->pool =
+		    new_mem_pool((u8*)data->memory + sizeof(*state), data->memory_size - sizeof(*state));
+
+		state->render_mode = SRM_SHADED | SRM_TEXTURED;
+		load_model("./assets/", "muro.obj", &state->pool, &state->model);
 
 		// minimal shader
 		{
@@ -157,7 +199,7 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 			                                  "}\n";
 
 			b32 result = compile_shader_program(gl_fns, &state->minimal_shader.id,
-			                                     vertex_shader_src, fragment_shader_src);
+			                                    vertex_shader_src, fragment_shader_src);
 			SDL_assert(result);
 
 			gl(glGenBuffers(1, &state->minimal_shader.v_array));
@@ -192,7 +234,7 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 			    "}\n";
 
 			b32 result = compile_shader_program(gl_fns, &state->ui_shader.id, vertex_shader_src,
-			                                     fragment_shader_src);
+			                                    fragment_shader_src);
 			SDL_assert(result);
 		}
 
@@ -262,9 +304,9 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 
 		// bake fonts
 		{
-			struct mem_pool pool = {.memory = state->memory, .memory_end = state->memory_end};
+			mem_pool pool = state->pool;
 			struct stbtt_fontinfo font_info;
-			SDL_RWops *font_file = SDL_RWFromFile("assets/hack.ttf", "rb");
+			SDL_RWops *font_file = SDL_RWFromFile("assets/fonts/hack.ttf", "rb");
 			SDL_assert(font_file);
 			u64 font_size = SDL_RWsize(font_file);
 			void *font_contents = mem_push(&pool, font_size);
@@ -375,7 +417,8 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 		if (nk_begin(ctx, &layout, "Hello, Nuklear!", nk_rect(10, 10, 180, 250),
 		             NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_MOVABLE)) {
 			nk_layout_row_dynamic(ctx, 25.0f, 2);
-			if (nk_button_label(ctx, "Button NNN")) SDL_Log("Hot reload, yay!");
+			if (nk_button_label(ctx, "Button NNN"))
+				SDL_Log("Hot reload, yay!");
 
 			nk_button_label(ctx, "Button Two");
 			nk_button_label(ctx, "Button Two");
@@ -539,7 +582,8 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 
 			/* iterate over and execute each draw command */
 			nk_draw_foreach(cmd, &state->ui_context, &state->ui_cmd_buff) {
-				if (!cmd->elem_count) continue;
+				if (!cmd->elem_count)
+					continue;
 				gl(glBindTexture(GL_TEXTURE_2D, (GLuint)cmd->texture.id));
 				gl(glDrawElements(GL_TRIANGLES, (GLsizei)cmd->elem_count, GL_UNSIGNED_SHORT,
 				                  offset));
@@ -600,7 +644,8 @@ b32 GameUpdate(game_data *data, gl_functions gl_fns, float delta_time) {
 	/* if (IsKeyDown(lkb, kb, KbKey::N_3)) gameData->renderMode ^= RenderMode::Wireframe; */
 
 	/* ClearRenderTarget(renderTarget, {0, 0, 0, 255}); */
-	/* Render(renderTarget, gameData->renderMode, &gameData->model, gameData->camera.pos, view * model, */
+	/* Render(renderTarget, gameData->renderMode, &gameData->model, gameData->camera.pos, view *
+	 * model, */
 	/*        projection, screenMatrix, norm_v3(vec4{1, 1, 1, 0}), {255, 255, 255, 255}, 0.05f, */
 	/*        &gameData->pool); */
 

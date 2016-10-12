@@ -22,7 +22,7 @@
 #define platform_alloc(size, base_address) malloc(size)
 #endif
 
-LOCAL s32 load_gl_functions(struct gl_functions *data) {
+LOCAL s32 load_gl_functions(gl_functions *data) {
 #if SDL_VIDEO_DRIVER_UIKIT || SDL_VIDEO_DRIVER_ANDROID || SDL_VIDEO_DRIVER_PANDORA
 #define __SDL_NOGETPROCADDR__
 #endif
@@ -44,18 +44,18 @@ LOCAL s32 load_gl_functions(struct gl_functions *data) {
 	return 0;
 }
 
-struct game_lib_info {
-	b32 (*game_update)(struct game_data *data, struct gl_functions gl, float delta_time);
+typedef struct {
+	b32 (*game_update)(game_data *data, gl_functions gl, float delta_time);
 
 #if defined(PT_GAME_DYNAMIC)
 	void *library;
 	FILETIME last_write_time;
 #endif
-};
+} game_lib_info;
 
 // TODO: make this shipping friendly way down the line
 LOCAL void reload_game_lib(char *src_lib_path, char *temp_lib_path, char *lock_file_path,
-                           struct game_lib_info *info) {
+                           game_lib_info *info) {
 #if defined(PT_GAME_DYNAMIC)
 	SDL_RWops *lock_file = SDL_RWFromFile(lock_file_path, "r");
 	if (lock_file) {
@@ -111,8 +111,8 @@ LOCAL void reload_game_lib(char *src_lib_path, char *temp_lib_path, char *lock_f
 }
 
 int main(int argc, char **argv) {
-	struct game_data game_data = {0};
-	game_data.memory_size = 64 * Mb;
+	game_data game_data = {0};
+	game_data.memory_size = 128 * Mb;
 	void *game_mem_base_address =
 #ifdef PT_DEV_BUILD
 	    // TODO: make this 32bit friendly (?)
@@ -132,11 +132,11 @@ int main(int argc, char **argv) {
 	SDL_GLContext context = SDL_GL_CreateContext(game_data.window);
 	SDL_GL_MakeCurrent(game_data.window, context);
 
-	struct gl_functions gl_functions;
+	gl_functions gl_functions;
 	s32 context_load_res = load_gl_functions(&gl_functions);
 	SDL_assert(context_load_res >= 0);
 
-	struct game_lib_info game_lib = {0};
+	game_lib_info game_lib = {0};
 	b32 continueRunning = true;
 
 	do {
