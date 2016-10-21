@@ -44,11 +44,15 @@ typedef struct {
 
 u64 load_file(const char* path, void* memory, u64 bytes_to_load)
 {
+	u64 nbytes_read = 0;
 	SDL_RWops *file = SDL_RWFromFile(path, "rb");
-	u64 bytes_read = SDL_RWread(file, memory, 1, bytes_to_load);
-	SDL_RWclose(file);
+	if (file)
+	{
+		nbytes_read = SDL_RWread(file, memory, 1, bytes_to_load);
+		SDL_RWclose(file);
+	}
 
-	return bytes_read;
+	return nbytes_read;
 }
 
 u64 get_file_size(const char* path)

@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_EVENTS);
 	game_data.window =
-	    SDL_CreateWindow("demo window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
+	    SDL_CreateWindow("demo window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
 	                     SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 0);

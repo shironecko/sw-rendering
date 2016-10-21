@@ -303,7 +303,7 @@ SWR_FN void swr_render_model(swr_render_target *target, u32 render_mode, model *
 								texel = *sample_t2d(*material->diffuse, (u32)tu, (u32)tv);
 							}
 
-							col4 fragment_col = {0};
+							col4 fragment_col = { .e[3] = 255 };
 							for (u32 j = 0; j < 3; ++j) {
 								float cl = sun_col.e[j] * l / 255.0f;
 								fragment_col.e[j] = (u8)clamp(texel.e[j] * cl, 0, 255.0f);

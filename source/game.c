@@ -53,8 +53,8 @@
 
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#define REF_W 640
-#define REF_H 480
+#define REF_W 1280
+#define REF_H 720
 
 typedef struct {
 	struct nk_user_font nk_font;
@@ -120,6 +120,8 @@ typedef struct {
 	Camera camera;
 	model model;
 	u32 render_mode;
+	float resolution_scale;
+	u32 iresolution_scale;
 } game_state;
 
 /* b32 IsKeyUp(b32 *lastKbState, b32 *kbState, u32 key) { */
@@ -178,6 +180,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 
 		state->render_mode = SRM_WIREFRAME;
 		load_model("./assets/", "muro.obj", &state->pool, &state->model);
+		state->iresolution_scale = 1;
 
 		// minimal shader
 		{
@@ -322,7 +325,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 			result = stbtt_PackBegin(&pack_context, font_texture_alpha, w, h, 0, 1, 0);
 			SDL_assert(result);
 
-			float bake_height = 13.0f * scale;
+			float bake_height = 16.0f * scale;
 			result = stbtt_PackFontRange(&pack_context, font_contents, 0, bake_height, 0x0000,
 			                             arr_len(state->ui_font.packed_chars),
 			                             state->ui_font.packed_chars);
@@ -348,7 +351,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 
 			struct nk_user_font nk_font;
 			nk_font.userdata.ptr = &state->ui_font;
-			nk_font.height = 13.0f;
+			nk_font.height = 16.0f;
 			nk_font.width = ui_text_width_fn;
 			nk_font.query = ui_query_font_glyph_fn;
 			nk_font.texture.id = (int)state->ui_font.texture;
@@ -410,20 +413,39 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		// draw UI
 		struct nk_panel layout;
 		struct nk_context *ctx = &state->ui_context;
-		struct nk_style *s = &ctx->style;
-		s->button.text_background = nk_rgb(255, 0, 0);
-		s->button.border_color = nk_rgb(0, 255, 0);
-		s->button.normal = nk_style_item_color(nk_rgb(0, 0, 0));
-		if (nk_begin(ctx, &layout, "Hello, Nuklear!", nk_rect(10, 10, 180, 250),
+		if (nk_begin(ctx, &layout, "SWR UI", nk_rect(10, 10, 220, 180),
 		             NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_MOVABLE)) {
-			nk_layout_row_dynamic(ctx, 25.0f, 2);
-			if (nk_button_label(ctx, "Button NNN"))
-				SDL_Log("Hot reload, yay!");
+			nk_layout_row_dynamic(ctx, 20.0f, 1);
+			nk_label(ctx, "resolution scale", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
+			nk_layout_row_end(ctx);
 
-			nk_button_label(ctx, "Button Two");
-			nk_button_label(ctx, "Button Two");
-			nk_button_label(ctx, "Button Two");
-			nk_button_label(ctx, "Button Two");
+			nk_layout_row_dynamic(ctx, 20.0f, 4);
+			if (nk_option_label(ctx, "25%", state->iresolution_scale == 0))
+				state->iresolution_scale = 0;
+			if (nk_option_label(ctx, "50%", state->iresolution_scale == 1))
+				state->iresolution_scale = 1;
+			if (nk_option_label(ctx, "75%", state->iresolution_scale == 2))
+				state->iresolution_scale = 2;
+			if (nk_option_label(ctx, "100%", state->iresolution_scale == 3))
+				state->iresolution_scale = 3;
+
+			nk_layout_row_end(ctx);
+			state->resolution_scale = (state->iresolution_scale + 1) * 0.25f;
+
+			nk_layout_row_dynamic(ctx, 20.0f, 1);
+			nk_label(ctx, "render modes", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
+			if (nk_check_label(ctx, "shaded", state->render_mode & SRM_SHADED))
+				state->render_mode |= SRM_SHADED;
+			else
+				state->render_mode &= ~SRM_SHADED;
+			if (nk_check_label(ctx, "textured", state->render_mode & SRM_TEXTURED))
+				state->render_mode |= SRM_TEXTURED;
+			else
+				state->render_mode &= ~SRM_TEXTURED;
+			if (nk_check_label(ctx, "wireframe", state->render_mode & SRM_WIREFRAME))
+				state->render_mode |= SRM_WIREFRAME;
+			else
+				state->render_mode &= ~SRM_WIREFRAME;
 
 			nk_layout_row_end(ctx);
 		}
@@ -433,40 +455,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 	gl(glClearColor(1.0f, 0.0f, 1.0f, 1.0f));
 	gl(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	// render background (in ref res) fill
-	{
-		gl(glUseProgram(state->minimal_shader.id));
-		gl(glBindBuffer(GL_ARRAY_BUFFER, state->minimal_shader.v_array));
-
-		float r, g, b;
-		r = g = b = 0.2f;
-		struct {
-			float pos[2];
-			float col[4];
-		} vertices[] = {{.pos = {0, 0}, .col = {r, g, b, 1.0f}},
-		                {.pos = {REF_W, 0}, .col = {r, g, b, 1.0f}},
-		                {.pos = {0, REF_H}, .col = {r, g, b, 1.0f}},
-		                {.pos = {0, REF_H}, .col = {r, g, b, 1.0f}},
-		                {.pos = {REF_W, 0}, .col = {r, g, b, 1.0f}},
-		                {.pos = {REF_W, REF_H}, .col = {r, g, b, 1.0f}}};
-
-		gl(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
-		gl(glEnableVertexAttribArray(state->minimal_shader.a_pos));
-		gl(glEnableVertexAttribArray(state->minimal_shader.a_col));
-		gl(glVertexAttribPointer(state->minimal_shader.a_pos, 2, GL_FLOAT, GL_FALSE,
-		                         sizeof(vertices[0]), 0));
-		gl(glVertexAttribPointer(state->minimal_shader.a_col, 4, GL_FLOAT, GL_FALSE,
-		                         sizeof(vertices[0]),
-		                         (void *)((u8 *)&vertices[0].col - (u8 *)vertices)));
-
-		gl(glDrawArrays(GL_TRIANGLES, 0, 6));
-		// this fucking shit is not working on GLES2 for some reason
-		/* u32 indices[] = { 0, 1, 2, 2, 1, 3 }; */
-		/* gl(glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT,
-		 * indices)); */
-	}
-
-	// render font texture
+	// render model in software
 	{
 		gl(glEnable(GL_BLEND));
 		gl(glBlendEquation(GL_FUNC_ADD));
@@ -505,7 +494,8 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		/* gl(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW)); */
 
 		mem_pool pool = state->pool;
-		tex2d mem_texture = {.width = state->window_w, .height = state->window_h};
+		tex2d mem_texture = {.width = (u32)(state->window_w * state->resolution_scale),
+		                     .height = (u32)(state->window_h * state->resolution_scale)};
 		mem_texture.texels = (col4 *)mem_push(&pool, sizeof(*mem_texture.texels) *
 		                                                 mem_texture.width * mem_texture.height);
 
@@ -518,7 +508,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		model_m4 = mul_m4(model_m4, scale_m4(scale, scale, scale));
 
 		vec3 cam_pos = {0, 0, 1.0f};
-		mat4 view_m4 = lookat_cam(cam_pos, V3_ZERO, V3_UP);
+		mat4 view_m4 = lookat_cam(cam_pos, V3_ZERO, (vec3){0, -1.0f, 0});
 		mat4 projection_m4 = projection(90.0f, (float)render_target.texture->width /
 		                                           (float)render_target.texture->height,
 		                                0.1f, 1000.0f);
@@ -534,8 +524,8 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		u32 texture;
 		gl(glGenTextures(1, &texture));
 		gl(glBindTexture(GL_TEXTURE_2D, texture));
-		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+		gl(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 		gl(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mem_texture.width, mem_texture.height, 0,
 		                GL_RGBA, GL_UNSIGNED_BYTE, mem_texture.texels));
 
@@ -637,52 +627,4 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 	SDL_GL_SwapWindow(data->window);
 
 	return true;
-	/* GameData *gameData = (GameData *)gameMemory; */
-	/* const float camRotationSpeed = 2.0f; */
-	/* const float camSpeed = 1.0f; */
-
-	/* Camera c = gameData->camera; */
-	/* if (kbState[KbKey::Left]) c.yaw -= camRotationSpeed * deltaTime; */
-	/* if (kbState[KbKey::Right]) c.yaw += camRotationSpeed * deltaTime; */
-	/* if (kbState[KbKey::Up]) c.pitch -= camRotationSpeed * deltaTime; */
-	/* if (kbState[KbKey::Down]) c.pitch += camRotationSpeed * deltaTime; */
-
-	/* c.pitch = clamp(c.pitch, -PI * 0.45f, PI * 0.45f); */
-	/* c.yaw = (float)fmod(c.yaw, PI * 2); */
-
-	/* mat4 camRotation = rotx_m4(c.yaw) * roty_m4(c.pitch); */
-	/* if (kbState[KbKey::W]) */
-	/* 	c.pos = c.pos -  vec4{0, 0, camSpeed * deltaTime, 0}; */
-	/* if (kbState[KbKey::S]) */
-	/* 	c.pos = c.pos +  vec4{0, 0, camSpeed * deltaTime, 0}; */
-
-	/* mat4 camMat = fps_cam(c.pos, c.yaw, c.pitch); */
-	/* gameData->camera = c; */
-
-	/* float scale = 0.05f; */
-	/* mat4 model = trans_m4(0, -5.0f, -5.0f) * scale_m4(scale, scale, scale); */
-	/* mat4 view = camMat; */
-	/* mat4 projection = projection(90.0f, float(renderTarget->texture->width) / */
-	/*                                                    float(renderTarget->texture->height), */
-	/*                                         0.1f, 1000.0f); */
-
-	/* mat4 screenMatrix = */
-	/*     screen_space(renderTarget->texture->width - 1, renderTarget->texture->height - 1); */
-
-	/* b32 *kb = kbState; */
-	/* b32 *lkb = gameData->lastKbState; */
-	/* if (IsKeyDown(lkb, kb, KbKey::N_0)) */
-	/* 	gameData->renderMode = RenderMode::Shaded | RenderMode::Textured; */
-	/* if (IsKeyDown(lkb, kb, KbKey::N_1)) gameData->renderMode ^= RenderMode::Shaded; */
-	/* if (IsKeyDown(lkb, kb, KbKey::N_2)) gameData->renderMode ^= RenderMode::Textured; */
-	/* if (IsKeyDown(lkb, kb, KbKey::N_3)) gameData->renderMode ^= RenderMode::Wireframe; */
-
-	/* ClearRenderTarget(renderTarget, {0, 0, 0, 255}); */
-	/* Render(renderTarget, gameData->renderMode, &gameData->model, gameData->camera.pos, view *
-	 * model, */
-	/*        projection, screenMatrix, norm_v3(vec4{1, 1, 1, 0}), {255, 255, 255, 255}, 0.05f, */
-	/*        &gameData->pool); */
-
-	/* MemoryCopy(gameData->lastKbState, kbState, sizeof(*kbState) * KbKey::Last); */
-	/* return true; */
 }
