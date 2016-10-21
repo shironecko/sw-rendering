@@ -44,6 +44,7 @@
 #define NK_IMPLEMENTATION
 #define NK_PRIVATE
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_STANDARD_VARARGS
 #define NK_BUTTON_TRIGGER_ON_RELEASE
 #define NK_ASSERT SDL_assert
 #pragma warning(push)
@@ -128,6 +129,10 @@ typedef struct {
 	u32 render_mode;
 	float resolution_scale;
 	u32 iresolution_scale;
+
+	float accumulated_dt;
+	float average_dt;
+	u32 frames_tracked;
 } game_state;
 
 float ui_text_width_fn(nk_handle userdata, float height, const char *str, int len) {
@@ -409,7 +414,9 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		// draw UI
 		struct nk_panel layout;
 		struct nk_context *ctx = &state->ui_context;
-		if (nk_begin(ctx, &layout, "SWR UI", nk_rect(10, 10, 220, 180),
+
+		// render settings
+		if (nk_begin(ctx, &layout, "render settings", nk_rect(10, 10, 220, 180),
 		             NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_MOVABLE)) {
 			nk_layout_row_dynamic(ctx, 20.0f, 1);
 			nk_label(ctx, "resolution scale", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
@@ -443,6 +450,24 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 			else
 				state->render_mode &= ~SRM_WIREFRAME;
 
+			nk_layout_row_end(ctx);
+		}
+		nk_end(ctx);
+
+		state->accumulated_dt += delta_time;
+		++state->frames_tracked;
+		const float dt_update_period = 0.5;
+		if (state->accumulated_dt >= dt_update_period) {
+			state->average_dt = state->accumulated_dt / (float)state->frames_tracked;
+			state->accumulated_dt = 0;
+			state->frames_tracked = 0;
+		}
+
+		if (nk_begin(ctx, &layout, "perf stats", nk_rect(10, 200, 220, 180),
+		             NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_NO_SCROLLBAR)) {
+			nk_layout_row_dynamic(ctx, 20.0f, 1);
+			nk_labelf(ctx, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM, "%05.2fms per frame",
+			          state->average_dt * 1000.0f);
 			nk_layout_row_end(ctx);
 		}
 		nk_end(ctx);
