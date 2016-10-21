@@ -129,6 +129,7 @@ typedef struct {
 	u32 render_mode;
 	float resolution_scale;
 	u32 iresolution_scale;
+	b32 bypass_rendering;
 
 	float accumulated_dt;
 	float average_dt;
@@ -419,6 +420,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		if (nk_begin(ctx, &layout, "render settings", nk_rect(10, 10, 220, 180),
 		             NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_MOVABLE)) {
 			nk_layout_row_dynamic(ctx, 20.0f, 1);
+			state->bypass_rendering = nk_check_label(ctx, "bypass rendering", state->bypass_rendering);
 			nk_label(ctx, "resolution scale", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
 			nk_layout_row_end(ctx);
 
@@ -477,6 +479,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 	gl(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	// render model in software
+	if (!state->bypass_rendering)
 	{
 		gl(glDisable(GL_BLEND));
 		gl(glBlendEquation(GL_FUNC_ADD));

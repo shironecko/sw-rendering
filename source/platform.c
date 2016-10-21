@@ -115,7 +115,6 @@ int main(int argc, char **argv) {
 	game_data.memory_size = 128 * Mb;
 	void *game_mem_base_address =
 #ifdef PT_DEV_BUILD
-	    // TODO: make this 32bit friendly (?)
 	    (void *)(2048ULL * Gb);
 #else
 	    0;
@@ -128,7 +127,8 @@ int main(int argc, char **argv) {
 	    SDL_CreateWindow("demo window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
 	                     SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 0);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetSwapInterval(0);
 	SDL_GLContext context = SDL_GL_CreateContext(game_data.window);
 	SDL_GL_MakeCurrent(game_data.window, context);
 
@@ -161,7 +161,6 @@ int main(int argc, char **argv) {
 		game_data.mouse.lmb = mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
 		game_data.mouse.rmb = mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
-		// TODO: timing
 		continueRunning = game_lib.game_update(&game_data, gl_functions, delta_time);
 
 	} while (continueRunning);
