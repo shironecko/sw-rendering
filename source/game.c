@@ -73,6 +73,12 @@ typedef struct {
 } Camera;
 
 typedef struct {
+	float position[2];
+	float uv[2];
+	u8 col[4];
+} ui_vertex;
+
+typedef struct {
 	//****************BASICS****************//
 	b32 initialized;
 
@@ -123,16 +129,6 @@ typedef struct {
 	float resolution_scale;
 	u32 iresolution_scale;
 } game_state;
-
-/* b32 IsKeyUp(b32 *lastKbState, b32 *kbState, u32 key) { */
-/* 	assert(key < KbKey::Last); */
-/* 	return lastKbState[key] && !kbState[key]; */
-/* } */
-
-/* b32 IsKeyDown(b32 *lastKbState, b32 *kbState, u32 key) { */
-/* 	assert(key < KbKey::Last); */
-/* 	return !lastKbState[key] && kbState[key]; */
-/* } */
 
 float ui_text_width_fn(nk_handle userdata, float height, const char *str, int len) {
 	ui_font *font = userdata.ptr;
@@ -457,17 +453,17 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 
 	// render model in software
 	{
-		gl(glEnable(GL_BLEND));
+		gl(glDisable(GL_BLEND));
 		gl(glBlendEquation(GL_FUNC_ADD));
 		gl(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 		gl(glDisable(GL_DEPTH_TEST));
 		gl(glUseProgram(state->ui_shader.id));
 		gl(glUniform1i(state->ui_shader.u_tex, 0));
 
-		GLsizei vs = sizeof(struct nk_draw_vertex);
-		size_t vp = offsetof(struct nk_draw_vertex, position);
-		size_t vt = offsetof(struct nk_draw_vertex, uv);
-		size_t vc = offsetof(struct nk_draw_vertex, col);
+		GLsizei vs = sizeof(ui_vertex);
+		size_t vp = offsetof(ui_vertex, position);
+		size_t vt = offsetof(ui_vertex, uv);
+		size_t vc = offsetof(ui_vertex, col);
 
 		gl(glBindBuffer(GL_ARRAY_BUFFER, state->ui_shader.v_array));
 		/* gl(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ui_shader.i_array)); */
@@ -483,10 +479,10 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		gl(glVertexAttribPointer((GLuint)state->ui_shader.a_col, 4, GL_UNSIGNED_BYTE, GL_TRUE, vs,
 		                         (void *)vc));
 
-		struct nk_draw_vertex vertices[] = {{{0, 0}, {0, 0}, 0xFFFFFFFF},
-		                                    {{REF_W, 0}, {1, 0}, 0xFFFFFFFF},
-		                                    {{0, REF_H}, {0, 1}, 0xFFFFFFFF},
-		                                    {{REF_W, REF_H}, {1, 1}, 0xFFFFFFFF}};
+		ui_vertex vertices[] = {{{0, 0}, {0, 0}, {0xFF, 0xFF, 0xFF, 0xFF}},
+		                        {{REF_W, 0}, {1, 0}, {0xFF, 0xFF, 0xFF, 0xFF}},
+		                        {{0, REF_H}, {0, 1}, {0xFF, 0xFF, 0xFF, 0xFF}},
+		                        {{REF_W, REF_H}, {1, 1}, {0xFF, 0xFF, 0xFF, 0xFF}}};
 
 		u32 indices[] = {0, 1, 2, 2, 1, 3};
 
@@ -559,13 +555,21 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 			{
 				/* fill converting configuration */
 				struct nk_convert_config config;
-				memset(&config, 0, sizeof(config));
-				config.global_alpha = 1.0f;
-				config.shape_AA = NK_ANTI_ALIASING_ON;
-				config.line_AA = NK_ANTI_ALIASING_ON;
+				const struct nk_draw_vertex_layout_element vertex_layout[] = {
+				    {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(ui_vertex, position)},
+				    {NK_VERTEX_TEXCOORD, NK_FORMAT_FLOAT, NK_OFFSETOF(ui_vertex, uv)},
+				    {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(ui_vertex, col)},
+				    {NK_VERTEX_LAYOUT_END}};
+				NK_MEMSET(&config, 0, sizeof(config));
+				config.vertex_layout = vertex_layout;
+				config.vertex_size = sizeof(ui_vertex);
+				config.vertex_alignment = NK_ALIGNOF(ui_vertex);
 				config.circle_segment_count = 22;
 				config.curve_segment_count = 22;
 				config.arc_segment_count = 22;
+				config.global_alpha = 1.0f;
+				config.shape_AA = NK_ANTI_ALIASING_ON;
+				config.line_AA = NK_ANTI_ALIASING_ON;
 				config.null = state->ui_draw_null_tex;
 
 				/* setup buffers to load vertices and elements */
@@ -580,10 +584,10 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 			}
 
 			/* buffer setup */
-			GLsizei vs = sizeof(struct nk_draw_vertex);
-			size_t vp = offsetof(struct nk_draw_vertex, position);
-			size_t vt = offsetof(struct nk_draw_vertex, uv);
-			size_t vc = offsetof(struct nk_draw_vertex, col);
+			GLsizei vs = sizeof(ui_vertex);
+			size_t vp = offsetof(ui_vertex, position);
+			size_t vt = offsetof(ui_vertex, uv);
+			size_t vc = offsetof(ui_vertex, col);
 
 			gl(glBindBuffer(GL_ARRAY_BUFFER, state->ui_shader.v_array));
 			gl(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ui_shader.i_array));

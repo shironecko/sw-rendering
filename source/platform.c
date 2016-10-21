@@ -138,8 +138,14 @@ int main(int argc, char **argv) {
 
 	game_lib_info game_lib = {0};
 	b32 continueRunning = true;
+	u64 prev_frame_start_ticks = SDL_GetPerformanceCounter();
 
 	do {
+		u64 ticks = SDL_GetPerformanceCounter();
+		u64 frequency = SDL_GetPerformanceFrequency();
+		float delta_time = (float)((double)(ticks - prev_frame_start_ticks) / (double)frequency);
+		prev_frame_start_ticks = ticks;
+
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) continueRunning = false;
@@ -156,7 +162,7 @@ int main(int argc, char **argv) {
 		game_data.mouse.rmb = mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
 		// TODO: timing
-		continueRunning = game_lib.game_update(&game_data, gl_functions, 0.17f);
+		continueRunning = game_lib.game_update(&game_data, gl_functions, delta_time);
 
 	} while (continueRunning);
 
