@@ -54,8 +54,8 @@
 
 #define arr_len(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#define REF_W 1280
-#define REF_H 720
+#define REF_W 800
+#define REF_H 600
 
 typedef struct {
 	struct nk_user_font nk_font;
@@ -134,6 +134,8 @@ typedef struct {
 	float accumulated_dt;
 	float average_dt;
 	u32 frames_tracked;
+
+	u32 iselected_display;
 } game_state;
 
 float ui_text_width_fn(nk_handle userdata, float height, const char *str, int len) {
@@ -416,11 +418,33 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		struct nk_panel layout;
 		struct nk_context *ctx = &state->ui_context;
 
-		// render settings
-		if (nk_begin(ctx, &layout, "render settings", nk_rect(10, 10, 220, 180),
-		             NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_MOVABLE)) {
+		// perf stats
+		state->accumulated_dt += delta_time;
+		++state->frames_tracked;
+		const float dt_update_period = 0.5;
+		if (state->accumulated_dt >= dt_update_period) {
+			state->average_dt = state->accumulated_dt / (float)state->frames_tracked;
+			state->accumulated_dt = 0;
+			state->frames_tracked = 0;
+		}
+
+		if (nk_begin(ctx, &layout, "stats", nk_rect(10, 10, 220, 120),
+		             NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)) {
 			nk_layout_row_dynamic(ctx, 20.0f, 1);
-			state->bypass_rendering = nk_check_label(ctx, "bypass rendering", state->bypass_rendering);
+			nk_labelf(ctx, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM, "%u:%u", state->window_w,
+			          state->window_h);
+			nk_labelf(ctx, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM, "%05.2fms",
+			          state->average_dt * 1000.0f);
+			nk_layout_row_end(ctx);
+		}
+		nk_end(ctx);
+
+		// render settings
+		if (nk_begin(ctx, &layout, "render settings", nk_rect(10, 140, 220, 220),
+		             NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE)) {
+			nk_layout_row_dynamic(ctx, 20.0f, 1);
+			state->bypass_rendering =
+			    nk_check_label(ctx, "bypass rendering", state->bypass_rendering);
 			nk_label(ctx, "resolution scale", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
 			nk_layout_row_end(ctx);
 
@@ -456,20 +480,46 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 		}
 		nk_end(ctx);
 
-		state->accumulated_dt += delta_time;
-		++state->frames_tracked;
-		const float dt_update_period = 0.5;
-		if (state->accumulated_dt >= dt_update_period) {
-			state->average_dt = state->accumulated_dt / (float)state->frames_tracked;
-			state->accumulated_dt = 0;
-			state->frames_tracked = 0;
-		}
+		if (nk_begin(ctx, &layout, "window settings", nk_rect(10, 370, 220, 200),
+		             NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_TITLE |
+		                 NK_WINDOW_MINIMIZABLE)) {
+			u32 ndisplays = SDL_GetNumVideoDisplays();
+			SDL_assert(ndisplays >= 1);
+#define NMAX_DISPLAYS 32
+			ndisplays = minu(NMAX_DISPLAYS, ndisplays);
+			const char *display_names[NMAX_DISPLAYS] = {0};
+			for (u32 i = 0; i < ndisplays; ++i) {
+				display_names[i] = SDL_GetDisplayName(i);
+			}
+			state->iselected_display = minu(ndisplays - 1, state->iselected_display);
 
-		if (nk_begin(ctx, &layout, "perf stats", nk_rect(10, 200, 220, 180),
-		             NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_NO_SCROLLBAR)) {
 			nk_layout_row_dynamic(ctx, 20.0f, 1);
-			nk_labelf(ctx, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM, "%05.2fms per frame",
-			          state->average_dt * 1000.0f);
+			nk_label(ctx, "monitor", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_BOTTOM);
+			struct nk_rect bounds = nk_widget_bounds(ctx);
+			// FIXME: nk_combo is not working reliably
+			state->iselected_display =
+			    nk_combo(ctx, display_names, ndisplays, state->iselected_display, 20.0f,
+			             nk_vec2(bounds.w, 50.0f));
+			if (nk_button_label(ctx, "fullscreen")) {
+				SDL_DisplayMode display_mode;
+				s32 result = SDL_GetCurrentDisplayMode(state->iselected_display, &display_mode);
+				SDL_assert(!result);
+
+				SDL_Rect bounds;
+				result = SDL_GetDisplayBounds(state->iselected_display, &bounds);
+				SDL_assert(!result);
+				SDL_SetWindowPosition(data->window,
+				                      SDL_WINDOWPOS_CENTERED_DISPLAY(state->iselected_display),
+				                      SDL_WINDOWPOS_CENTERED_DISPLAY(state->iselected_display));
+				result = SDL_SetWindowDisplayMode(data->window, &display_mode);
+				SDL_assert(!result);
+				SDL_GL_SetSwapInterval(0);
+				result = SDL_SetWindowFullscreen(data->window, SDL_WINDOW_FULLSCREEN);
+				SDL_assert(!result);
+			}
+			if (nk_button_label(ctx, "windowed")) {
+				SDL_SetWindowFullscreen(data->window, 0);
+			}
 			nk_layout_row_end(ctx);
 		}
 		nk_end(ctx);
@@ -479,8 +529,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 	gl(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	// render model in software
-	if (!state->bypass_rendering)
-	{
+	if (!state->bypass_rendering) {
 		gl(glDisable(GL_BLEND));
 		gl(glBlendEquation(GL_FUNC_ADD));
 		gl(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -597,7 +646,7 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 				config.arc_segment_count = 22;
 				config.global_alpha = 1.0f;
 				config.shape_AA = NK_ANTI_ALIASING_ON;
-				config.line_AA = NK_ANTI_ALIASING_ON;
+				config.line_AA = NK_ANTI_ALIASING_OFF;
 				config.null = state->ui_draw_null_tex;
 
 				/* setup buffers to load vertices and elements */
