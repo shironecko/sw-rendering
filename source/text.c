@@ -17,7 +17,7 @@ u32 StringLen(const char *str) {
 	const char *p;
 	for (p = str; *p; ++p) {}
 
-	return p - str;
+	return (u32)(p - str);
 }
 
 u32 StringCopyPred(char *dest, const char *src, u32 max, b32 (*pred)(char, void *),
@@ -46,7 +46,7 @@ u32 StringCat(char *dest, const char *src, u32 destLen) {
 	char *p = dest;
 	while (*p) { ++p; }
 
-	return p - dest + StringCopy(p, src, destLen - (p - dest));
+	return (u32)(p - dest + StringCopy(p, src, (u32)(destLen - (p - dest))));
 }
 
 void StringCombine(char *dest, u32 destLen, const char *a, const char *b) {
@@ -64,7 +64,7 @@ u32 SkipLine(char *inText) {
 	char *text = inText;
 	while (*text != 0x0A && *text != 0) { ++text; }
 
-	return text - inText + 1;
+	return (u32)(text - inText + 1);
 }
 
 b32 IsNumber(char c) { return c >= '0' && c <= '9'; }
@@ -80,7 +80,7 @@ u32 ParseUInteger(char *inText, u32 *outUInt) {
 	}
 
 	*outUInt = result;
-	return text - inText;
+	return (u32)(text - inText);
 }
 
 u32 ParseFloat(char *inText, float *outFloat) {
@@ -115,7 +115,7 @@ u32 ParseFloat(char *inText, float *outFloat) {
 	if (!positive) result *= -1.0f;
 
 	*outFloat = result;
-	return text - inText;
+	return (u32)(text - inText);
 }
 
 b32 StringPredCharNotInList(char c, void *d) {

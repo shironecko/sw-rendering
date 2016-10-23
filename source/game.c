@@ -498,15 +498,11 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 			struct nk_rect bounds = nk_widget_bounds(ctx);
 			// FIXME: nk_combo is not working reliably
 			state->iselected_display =
-			    nk_combo(ctx, display_names, ndisplays, state->iselected_display, 20.0f,
+			    nk_combo(ctx, display_names, ndisplays, state->iselected_display, 20,
 			             nk_vec2(bounds.w, 50.0f));
 			if (nk_button_label(ctx, "fullscreen")) {
 				SDL_DisplayMode display_mode;
 				s32 result = SDL_GetCurrentDisplayMode(state->iselected_display, &display_mode);
-				SDL_assert(!result);
-
-				SDL_Rect bounds;
-				result = SDL_GetDisplayBounds(state->iselected_display, &bounds);
 				SDL_assert(!result);
 				SDL_SetWindowPosition(data->window,
 				                      SDL_WINDOWPOS_CENTERED_DISPLAY(state->iselected_display),
@@ -574,7 +570,9 @@ b32 game_update(game_data *data, gl_functions gl_fns, float delta_time) {
 
 		float *z_buffer =
 		    mem_push(&pool, sizeof(*z_buffer) * mem_texture.width * mem_texture.height);
-		swr_render_target render_target = {.texture = &mem_texture, .z_buffer = z_buffer};
+		swr_render_target render_target = {0};
+		render_target.texture = &mem_texture;
+		render_target.z_buffer = z_buffer;
 
 		float scale = 0.05f;
 		mat4 model_m4 = trans_m4(0, -5.0f, -5.0f);
